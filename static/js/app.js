@@ -424,7 +424,11 @@
 
     const meta = document.createElement("div"); meta.className = "row-meta";
     const dateSpan = document.createElement("span"); dateSpan.className = "row-date"; dateSpan.textContent = formatListDate(note.updated_at); meta.appendChild(dateSpan);
-    const snippetSpan = document.createElement("span"); snippetSpan.className = "row-snippet"; snippetSpan.innerHTML = highlightMatch(note.snippet || "", state.searchQuery); meta.appendChild(snippetSpan);
+    // Preview: use plain_text (full body, populated from character 0) so a
+    // single-line note shows its own text instead of an empty snippet that
+    // would otherwise fall back to repeating the title.
+    const rowPreviewText = (note.plain_text || note.snippet || "").slice(0, 200);
+    const snippetSpan = document.createElement("span"); snippetSpan.className = "row-snippet"; snippetSpan.innerHTML = highlightMatch(rowPreviewText, state.searchQuery); meta.appendChild(snippetSpan);
     row.appendChild(meta);
 
     if (isTrash) {

@@ -108,3 +108,32 @@ Without a `DATABASE_URL` set, the app falls back to a local SQLite file
 - Session cookies (via Flask-Login) are how login state persists across
   requests — make sure `SECRET_KEY` stays constant across deploys, or all
   users will be logged out whenever it changes.
+
+## Troubleshooting
+
+**"Internal Server Error" / `sqlite3.OperationalError: unable to open database file`**
+This means `DATABASE_URL` is not set in your Vercel project. Vercel's
+filesystem is read-only at runtime, so the app cannot fall back to SQLite the
+way it does locally — it requires a real Postgres connection. Go to
+**Project Settings → Environment Variables**, add `DATABASE_URL` (see step 2
+above), and redeploy. With this fixed, a missing `DATABASE_URL` now fails
+immediately with a clear error message at cold start instead of crashing on
+every request.
+
+**"Could not connect to the database" (503 response)**
+The app started fine but couldn't reach Postgres on a specific request —
+usually a typo'd connection string, an expired/rotated database password, or
+the database being paused (common on free-tier Neon/Supabase after
+inactivity). Double-check `DATABASE_URL` and that the database is awake.
+
+**Random logouts — e.g. "I created a folder and got logged out"**
+This means `SECRET_KEY` is not set in your Vercel environment variables.
+Without it, the app falls back to generating a random key — and on Vercel,
+every "cold start" can spin up a brand-new function instance with its *own*
+random key. A session cookie signed by one instance won't verify on another,
+so any action that happens to hit a fresh instance looks like an instant
+logout. Fix: set a **fixed** `SECRET_KEY` value in
+**Project Settings → Environment Variables** (generate one with
+`python -c "import secrets; print(secrets.token_hex(32))"`), then redeploy.
+With this fixed, a missing `SECRET_KEY` now fails immediately and clearly at
+cold start instead of silently causing intermittent logouts.

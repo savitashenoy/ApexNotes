@@ -44,8 +44,28 @@ _db_url = os.environ.get("DATABASE_URL", "")
 if _db_url.startswith("postgres://"):
     _db_url = _db_url.replace("postgres://", "postgresql://", 1)
 
+# DATABASE_URL must be set in Vercel environment variables.
+# Vercel Postgres gives a URL starting with "postgres://"; SQLAlchemy needs "postgresql://"
+_db_url = os.environ.get("DATABASE_URL", "")
+if _db_url.startswith("postgres://"):
+    _db_url = _db_url.replace("postgres://", "postgresql://", 1)
+
+# Detect whether we're running on Vercel (VERCEL=1 is always set in that environment).
+_on_vercel = bool(os.environ.get("VERCEL"))
+
 if not _db_url:
-    # Fallback to SQLite for local testing only (won't work on Vercel)
+    if _on_vercel:
+        # Vercel's filesystem is read-only/ephemeral — SQLite cannot work here.
+        # Fail loudly and immediately with a clear, actionable message instead
+        # of letting every request crash later with a confusing sqlite3 error.
+        raise RuntimeError(
+            "DATABASE_URL is not set. On Vercel you must configure a Postgres "
+            "database and set the DATABASE_URL environment variable "
+            "(Project Settings -> Environment Variables), then redeploy. "
+            "SQLite cannot be used on Vercel because its filesystem is "
+            "read-only at runtime. See README.md for setup steps."
+        )
+    # Local development only — never used on Vercel.
     _db_url = "sqlite:///" + os.path.join(ROOT, "notes.db")
 
 app.config["SQLALCHEMY_DATABASE_URI"]         = _db_url
@@ -55,7 +75,39 @@ app.config["SQLALCHEMY_ENGINE_OPTIONS"]       = {
     "pool_recycle":  300,
     "connect_args":  {} if "sqlite" in _db_url else {"sslmode": "require"},
 }
-app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY") or secrets.token_hex(32)
+
+# SECRET_KEY signs the session cookie that keeps users logged in.
+# It MUST be stable across requests. On Vercel, a "cold start" can spin up a
+# brand-new function instance for any request — if SECRET_KEY is randomly
+# generated per-instance (as secrets.token_hex(32) does), a cookie signed by
+# instance A will fail to verify on instance B, and Flask-Login silently
+# treats the user as logged out. This is why actions like "create folder"
+# (or really any action, intermittently) were bouncing users back to login.
+_secret_key = os.environ.get("SECRET_KEY")
+if not _secret_key:
+    if _on_vercel:
+        raise RuntimeError(
+            "SECRET_KEY is not set. On Vercel this MUST be a fixed value in "
+            "your environment variables (Project Settings -> Environment "
+            "Variables), not auto-generated — otherwise every cold start "
+            "creates a new key, invalidating other instances' session "
+            "cookies and randomly logging users out. Generate one with: "
+            "python -c \"import secrets; print(secrets.token_hex(32))\" "
+            "and set it as SECRET_KEY, then redeploy. See README.md."
+        )
+    # Local development only — fine to vary between runs.
+    _secret_key = secrets.token_hex(32)
+
+app.config["SECRET_KEY"] = _secret_key
+
+# Make the session cookie behave correctly behind Vercel's HTTPS proxy and
+# survive across requests/tabs for the lifetime of "remember=True" logins.
+app.config["SESSION_COOKIE_SECURE"]   = _on_vercel   # HTTPS-only in production
+app.config["SESSION_COOKIE_HTTPONLY"] = True
+app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
+app.config["REMEMBER_COOKIE_SECURE"]  = _on_vercel
+app.config["REMEMBER_COOKIE_HTTPONLY"] = True
+app.config["REMEMBER_COOKIE_SAMESITE"] = "Lax"
 
 db = SQLAlchemy(app)
 
@@ -151,9 +203,26 @@ def ensure_db():
 
 @app.before_request
 def _before():
+    # Skip DB/auth work entirely for the favicon — it's a static, anonymous request.
+    if request.path == "/favicon.ico":
+        return
     ensure_db()
     if current_user.is_authenticated:
         _purge_expired_trash()
+
+
+from sqlalchemy.exc import OperationalError, DatabaseError
+
+
+@app.errorhandler(OperationalError)
+@app.errorhandler(DatabaseError)
+def _handle_db_error(e):
+    db.session.rollback()
+    return jsonify({
+        "error": "Could not connect to the database. Check that DATABASE_URL "
+                 "is set correctly in your environment variables and that the "
+                 "database is reachable, then retry."
+    }), 503
 
 
 # ── Helpers ────────────────────────────────────────────────────────────────
@@ -290,6 +359,13 @@ def api_me():
 
 
 # ── Pages ──────────────────────────────────────────────────────────────────
+@app.route("/favicon.ico")
+def favicon():
+    # No favicon shipped; respond with empty 204 so browsers stop retrying
+    # and this doesn't fall through to the authenticated app routes.
+    return ("", 204)
+
+
 @app.route("/")
 def login_page():
     if current_user.is_authenticated:
