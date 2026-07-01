@@ -438,6 +438,23 @@
     if (panel.id === "panel-signup") handleSignup();
     if (panel.id === "panel-change") handleChangePassword();
   });
+
+  // If the user is already logged in (valid session), redirect to the app.
+  // This handles the browser-back-button case and bookmarked login URLs
+  // without bypassing the login page for unauthenticated visitors.
+  (async function checkSession() {
+    try {
+      const res = await fetch("/api/auth/me");
+      if (res.ok) {
+        const me = await res.json();
+        if (me.logged_in) {
+          window.location.replace("/notes");
+        }
+      }
+    } catch (_) {
+      // Network error — just stay on the login page
+    }
+  })();
 </script>
 </body>
 </html>

@@ -368,8 +368,6 @@ def favicon():
 
 @app.route("/")
 def login_page():
-    if current_user.is_authenticated:
-        return redirect(url_for("notes_page"))
     return render_template("login.html")
 
 
