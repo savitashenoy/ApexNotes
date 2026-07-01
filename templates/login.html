@@ -6,45 +6,58 @@
 <title>Notes — Sign In</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Work+Sans:ital,wght@0,300..800;1,300..800&display=swap" rel="stylesheet">
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-  :root {
-    --blue-deep:    #2d4fc4;
-    --blue-mid:     #3a5bd9;
-    --white:        #ffffff;
-    --input-bg:     rgba(255,255,255,.18);
-    --input-border: rgba(255,255,255,.4);
-    --placeholder:  rgba(255,255,255,.6);
-    --font: 'Open Sans', -apple-system, sans-serif;
-    --radius: 8px;
-    --ease: .18s cubic-bezier(.4,0,.2,1);
-  }
-  html, body { height: 100%; font-family: var(--font); background: var(--blue-mid); overflow: hidden; }
 
-  /* ── Background blobs ── */
-  .bg { position: fixed; inset: 0; background: var(--blue-mid); overflow: hidden; z-index: 0; }
+  :root {
+    --cream:      #f5f0e4;
+    --cream-dark: #ede7d7;
+    --parchment:  #faf7f0;
+    --forest:     #3a6b32;
+    --forest-deep:#2a4e24;
+    --moss:       #5a7c50;
+    --divider:    #d4ccbc;
+    --text:       #1e1b14;
+    --text-muted: #7a7260;
+    --danger:     #c0392b;
+    --font-h:     'Instrument Serif', Georgia, serif;
+    --font:       'Work Sans', -apple-system, sans-serif;
+    --ease:       .18s cubic-bezier(.4,0,.2,1);
+  }
+
+  html, body { height: 100%; font-family: var(--font); background: var(--cream); overflow: hidden; }
+
+  /* ── Background texture ── */
+  .bg {
+    position: fixed; inset: 0;
+    background: var(--cream);
+    overflow: hidden; z-index: 0;
+  }
+  /* Organic soft blobs imitating paper grain / pressed leaves */
   .bg::before {
-    content: ""; position: absolute; top: -120px; right: -100px;
-    width: 520px; height: 520px; border-radius: 50%;
-    background: rgba(255,255,255,.07);
+    content: ""; position: absolute;
+    top: -140px; right: -80px;
+    width: 560px; height: 560px; border-radius: 50%;
+    background: radial-gradient(circle at 40% 40%, rgba(58,107,50,.12) 0%, transparent 70%);
   }
   .bg::after {
-    content: ""; position: absolute; bottom: -80px; left: -120px;
-    width: 480px; height: 420px; border-radius: 50%;
-    background: rgba(255,255,255,.06);
+    content: ""; position: absolute;
+    bottom: -100px; left: -100px;
+    width: 480px; height: 440px; border-radius: 50%;
+    background: radial-gradient(circle at 60% 60%, rgba(90,124,80,.10) 0%, transparent 70%);
   }
   .blob-mid {
-    position: absolute; top: 35%; left: -60px;
-    width: 300px; height: 340px;
-    border-radius: 60% 40% 70% 30% / 50% 60% 40% 50%;
-    background: rgba(255,255,255,.05);
+    position: absolute; top: 30%; left: -80px;
+    width: 320px; height: 360px;
+    border-radius: 62% 38% 66% 34% / 48% 56% 44% 52%;
+    background: rgba(58,107,50,.06);
   }
   .blob-right {
-    position: absolute; bottom: 10%; right: -40px;
-    width: 260px; height: 280px;
-    border-radius: 40% 60% 30% 70% / 60% 40% 60% 40%;
-    background: rgba(255,255,255,.05);
+    position: absolute; bottom: 8%; right: -50px;
+    width: 280px; height: 300px;
+    border-radius: 38% 62% 40% 60% / 56% 44% 56% 44%;
+    background: rgba(90,124,80,.07);
   }
 
   /* ── Card ── */
@@ -52,110 +65,146 @@
     position: relative; z-index: 1; min-height: 100vh;
     display: flex; align-items: center; justify-content: center; padding: 24px;
   }
-  .card { width: 100%; max-width: 380px; display: flex; flex-direction: column; align-items: center; }
+  .card {
+    width: 100%; max-width: 380px;
+    display: flex; flex-direction: column; align-items: center;
+  }
 
   /* ── Logo ── */
-  .logo { margin-bottom: 28px; color: var(--white); opacity: .92; }
+  .logo { margin-bottom: 12px; }
   .logo svg { display: block; }
+  .logo-title {
+    font-family: var(--font-h);
+    font-size: 32px; font-weight: 400; font-style: italic;
+    color: var(--forest-deep);
+    letter-spacing: -.01em;
+    text-align: center;
+    margin-bottom: 24px;
+    line-height: 1;
+  }
 
   /* ── Tabs ── */
   .tabs {
     display: flex; width: 100%; margin-bottom: 22px;
-    border-bottom: 1.5px solid rgba(255,255,255,.25);
+    border-bottom: 1.5px solid var(--divider);
   }
   .tab-btn {
     flex: 1; background: transparent; border: none;
-    padding: 9px 4px 10px; color: rgba(255,255,255,.55);
-    font-family: var(--font); font-size: 12.5px; font-weight: 700;
-    letter-spacing: .03em; cursor: pointer; position: relative;
+    padding: 9px 4px 10px;
+    color: var(--text-muted);
+    font-family: var(--font); font-size: 12.5px; font-weight: 600;
+    letter-spacing: .02em; cursor: pointer; position: relative;
     transition: color var(--ease); white-space: nowrap;
   }
   .tab-btn::after {
-    content: ""; position: absolute; bottom: -1.5px; left: 0; right: 0;
-    height: 2.5px; background: var(--white); border-radius: 2px 2px 0 0;
+    content: ""; position: absolute;
+    bottom: -1.5px; left: 0; right: 0;
+    height: 2.5px; background: var(--forest);
+    border-radius: 2px 2px 0 0;
     opacity: 0; transition: opacity var(--ease);
   }
-  .tab-btn.active { color: var(--white); }
+  .tab-btn.active { color: var(--forest-deep); }
   .tab-btn.active::after { opacity: 1; }
 
   /* ── Panels ── */
   .panel { display: none; flex-direction: column; gap: 12px; width: 100%; }
   .panel.active { display: flex; animation: panelIn .2s ease; }
-  @keyframes panelIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+  @keyframes panelIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
 
   /* ── Input group ── */
   .input-group { position: relative; width: 100%; }
   .input-group .icon {
     position: absolute; left: 13px; top: 50%; transform: translateY(-50%);
-    color: rgba(255,255,255,.65); pointer-events: none;
+    color: var(--text-muted); pointer-events: none;
     display: flex; align-items: center;
   }
   .input-group input {
-    width: 100%; background: var(--input-bg); border: 1.5px solid var(--input-border);
-    border-radius: var(--radius); padding: 11px 38px 11px 40px;
-    color: var(--white); font-family: var(--font); font-size: 13px;
-    letter-spacing: .04em; outline: none;
-    transition: border-color var(--ease), background var(--ease); -webkit-appearance: none;
+    width: 100%;
+    background: var(--parchment);
+    border: 1.5px solid var(--divider);
+    border-radius: 8px;
+    padding: 11px 38px 11px 40px;
+    color: var(--text); font-family: var(--font); font-size: 13px;
+    letter-spacing: .02em; outline: none;
+    transition: border-color var(--ease), background var(--ease);
+    -webkit-appearance: none;
   }
-  .input-group input::placeholder { color: var(--placeholder); letter-spacing: .06em; font-size: 12px; }
-  .input-group input:focus { border-color: rgba(255,255,255,.75); background: rgba(255,255,255,.22); }
-  .input-group input.error-field { border-color: #ff9999; }
+  .input-group input::placeholder { color: var(--text-muted); font-size: 12px; }
+  .input-group input:focus {
+    border-color: var(--forest);
+    background: #fff;
+    box-shadow: 0 0 0 3px rgba(58,107,50,.10);
+  }
+  .input-group input.error-field { border-color: var(--danger); box-shadow: 0 0 0 3px rgba(192,57,43,.10); }
 
   .eye-btn {
     position: absolute; right: 11px; top: 50%; transform: translateY(-50%);
-    background: transparent; border: none; color: rgba(255,255,255,.55);
+    background: transparent; border: none; color: var(--text-muted);
     cursor: pointer; display: flex; align-items: center; padding: 0;
     transition: color var(--ease);
   }
-  .eye-btn:hover { color: var(--white); }
+  .eye-btn:hover { color: var(--forest); }
 
   /* ── Strength bar ── */
   .strength-wrap { display: flex; flex-direction: column; gap: 3px; }
-  .strength-bar { height: 3px; border-radius: 2px; background: rgba(255,255,255,.2); overflow: hidden; }
+  .strength-bar { height: 3px; border-radius: 2px; background: var(--divider); overflow: hidden; }
   .strength-fill { height: 100%; width: 0; border-radius: 2px; transition: width .22s, background .22s; }
-  .strength-label { font-size: 11px; color: rgba(255,255,255,.55); font-weight: 600; min-height: 14px; }
+  .strength-label { font-size: 11px; color: var(--text-muted); font-weight: 600; min-height: 14px; }
 
   /* ── Divider / section label ── */
-  .form-divider { height: 1px; background: rgba(255,255,255,.18); margin: 2px 0; }
-  .section-label { font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: rgba(255,255,255,.5); }
+  .form-divider { height: 1px; background: var(--divider); margin: 2px 0; }
+  .section-label {
+    font-family: var(--font-h); font-size: 13px; font-style: italic;
+    color: var(--text-muted);
+  }
 
-  /* ── Buttons ── */
+  /* ── Primary button ── */
   .btn-primary {
-    width: 100%; padding: 12px; background: var(--white); color: var(--blue-deep);
-    border: none; border-radius: var(--radius); font-family: var(--font);
-    font-size: 13.5px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase;
-    cursor: pointer; transition: background var(--ease), transform .12s, box-shadow .12s;
-    box-shadow: 0 4px 18px rgba(0,0,0,.18); margin-top: 4px;
+    width: 100%; padding: 12px;
+    background: var(--forest); color: #fff;
+    border: none; border-radius: 8px;
+    font-family: var(--font); font-size: 13.5px; font-weight: 700;
+    letter-spacing: .08em; text-transform: uppercase;
+    cursor: pointer;
+    transition: background var(--ease), transform .12s, box-shadow .12s;
+    box-shadow: 0 4px 16px rgba(42,78,36,.25);
+    margin-top: 4px;
     display: flex; align-items: center; justify-content: center; gap: 8px;
   }
-  .btn-primary:hover:not(:disabled) { background: #eef2ff; transform: translateY(-1px); box-shadow: 0 6px 22px rgba(0,0,0,.22); }
+  .btn-primary:hover:not(:disabled) {
+    background: var(--forest-deep); transform: translateY(-1px);
+    box-shadow: 0 6px 22px rgba(42,78,36,.32);
+  }
   .btn-primary:active:not(:disabled) { transform: translateY(0); }
   .btn-primary:disabled { opacity: .6; cursor: not-allowed; }
+
   .btn-spinner {
-    width: 14px; height: 14px; border: 2px solid rgba(61,95,212,.3);
-    border-top-color: var(--blue-deep); border-radius: 50%;
+    width: 14px; height: 14px;
+    border: 2px solid rgba(255,255,255,.35);
+    border-top-color: #fff;
+    border-radius: 50%;
     animation: spin .7s linear infinite; display: none;
   }
   .btn-primary.loading .btn-spinner { display: block; }
-  .btn-primary.loading .btn-text { opacity: .7; }
+  .btn-primary.loading .btn-text { opacity: .75; }
   @keyframes spin { to { transform: rotate(360deg); } }
 
   .link-row { text-align: center; margin-top: 2px; }
   .link-btn {
-    background: transparent; border: none; color: rgba(255,255,255,.7);
+    background: transparent; border: none; color: var(--text-muted);
     font-family: var(--font); font-size: 13px; font-weight: 500;
     cursor: pointer; transition: color var(--ease); padding: 0;
   }
-  .link-btn:hover { color: var(--white); }
+  .link-btn:hover { color: var(--forest); }
 
   /* ── Inline message ── */
   .msg {
-    font-size: 12.5px; text-align: center; font-weight: 600; min-height: 17px;
-    letter-spacing: .01em; border-radius: 6px; padding: 0;
+    font-size: 12.5px; text-align: center; font-weight: 600;
+    min-height: 17px; letter-spacing: .01em;
     transition: all .18s;
   }
-  .msg.error   { color: #ffb3b3; }
-  .msg.success { color: #b3ffd0; }
+  .msg.error   { color: var(--danger); }
+  .msg.success { color: var(--forest); }
 
   @media (max-width: 420px) { .card { max-width: 100%; } .tab-btn { font-size: 11.5px; } }
 </style>
@@ -167,16 +216,16 @@
 <div class="card-wrap">
   <div class="card">
 
-    <!-- Logo -->
+    <!-- Logo: leaf / note icon in forest green -->
     <div class="logo">
-      <svg width="62" height="62" viewBox="0 0 64 64" fill="none">
-        <path d="M16 20H52L47 42H21L16 20Z" stroke="white" stroke-width="2.8" stroke-linejoin="round"/>
-        <path d="M32 36V28M29 31l3-3 3 3" stroke="white" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
-        <path d="M12 14H17L21 32" stroke="white" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/>
-        <circle cx="24" cy="47" r="2.5" fill="white"/>
-        <circle cx="44" cy="47" r="2.5" fill="white"/>
+      <svg width="52" height="52" viewBox="0 0 52 52" fill="none">
+        <rect x="8" y="6" width="30" height="38" rx="4" stroke="#3a6b32" stroke-width="2.2" fill="none"/>
+        <path d="M38 10l6 6v28a4 4 0 0 1-4 4H14" stroke="#3a6b32" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M38 10h6M38 10V16" stroke="#3a6b32" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M16 20h18M16 26h18M16 32h10" stroke="#5a7c50" stroke-width="1.8" stroke-linecap="round"/>
       </svg>
     </div>
+    <div class="logo-title">Notes</div>
 
     <!-- Tabs -->
     <div class="tabs">
@@ -189,18 +238,18 @@
     <div class="panel active" id="panel-login">
       <div class="input-group">
         <span class="icon"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg></span>
-        <input type="email" id="login-email" placeholder="EMAIL" autocomplete="email">
+        <input type="email" id="login-email" placeholder="Email address" autocomplete="email">
       </div>
       <div class="input-group">
         <span class="icon"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg></span>
-        <input type="password" id="login-password" placeholder="PASSWORD" autocomplete="current-password">
+        <input type="password" id="login-password" placeholder="Password" autocomplete="current-password">
         <button class="eye-btn" type="button" tabindex="-1" onclick="togglePwd('login-password',this)" aria-label="Show password">
           <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12z"/><circle cx="12" cy="12" r="3"/></svg>
         </button>
       </div>
       <p class="msg" id="login-msg"></p>
       <button class="btn-primary" id="loginBtn" onclick="handleLogin()">
-        <span class="btn-spinner"></span><span class="btn-text">LOGIN</span>
+        <span class="btn-spinner"></span><span class="btn-text">Sign In</span>
       </button>
       <div class="link-row"><button class="link-btn" onclick="switchTab('change')">Forgot password?</button></div>
     </div>
@@ -209,11 +258,11 @@
     <div class="panel" id="panel-signup">
       <div class="input-group">
         <span class="icon"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg></span>
-        <input type="email" id="signup-email" placeholder="EMAIL" autocomplete="email">
+        <input type="email" id="signup-email" placeholder="Email address" autocomplete="email">
       </div>
       <div class="input-group">
         <span class="icon"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg></span>
-        <input type="password" id="signup-password" placeholder="PASSWORD" autocomplete="new-password" oninput="updateStrength(this.value)">
+        <input type="password" id="signup-password" placeholder="Password (min. 8 characters)" autocomplete="new-password" oninput="updateStrength(this.value)">
         <button class="eye-btn" type="button" tabindex="-1" onclick="togglePwd('signup-password',this)" aria-label="Show password">
           <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12z"/><circle cx="12" cy="12" r="3"/></svg>
         </button>
@@ -224,14 +273,14 @@
       </div>
       <div class="input-group">
         <span class="icon"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg></span>
-        <input type="password" id="signup-repeat" placeholder="REPEAT PASSWORD" autocomplete="new-password">
+        <input type="password" id="signup-repeat" placeholder="Repeat password" autocomplete="new-password">
         <button class="eye-btn" type="button" tabindex="-1" onclick="togglePwd('signup-repeat',this)" aria-label="Show password">
           <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12z"/><circle cx="12" cy="12" r="3"/></svg>
         </button>
       </div>
       <p class="msg" id="signup-msg"></p>
       <button class="btn-primary" id="signupBtn" onclick="handleSignup()">
-        <span class="btn-spinner"></span><span class="btn-text">CREATE ACCOUNT</span>
+        <span class="btn-spinner"></span><span class="btn-text">Create Account</span>
       </button>
     </div>
 
@@ -239,27 +288,27 @@
     <div class="panel" id="panel-change">
       <div class="input-group">
         <span class="icon"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg></span>
-        <input type="email" id="change-email" placeholder="YOUR EMAIL" autocomplete="email">
+        <input type="email" id="change-email" placeholder="Your email address" autocomplete="email">
       </div>
       <div class="form-divider"></div>
-      <div class="section-label">New Password</div>
+      <div class="section-label">Choose a new password</div>
       <div class="input-group">
         <span class="icon"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg></span>
-        <input type="password" id="change-new" placeholder="NEW PASSWORD" autocomplete="new-password">
+        <input type="password" id="change-new" placeholder="New password" autocomplete="new-password">
         <button class="eye-btn" type="button" tabindex="-1" onclick="togglePwd('change-new',this)" aria-label="Show password">
           <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12z"/><circle cx="12" cy="12" r="3"/></svg>
         </button>
       </div>
       <div class="input-group">
         <span class="icon"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg></span>
-        <input type="password" id="change-confirm" placeholder="CONFIRM NEW PASSWORD" autocomplete="new-password">
+        <input type="password" id="change-confirm" placeholder="Confirm new password" autocomplete="new-password">
         <button class="eye-btn" type="button" tabindex="-1" onclick="togglePwd('change-confirm',this)" aria-label="Show password">
           <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12z"/><circle cx="12" cy="12" r="3"/></svg>
         </button>
       </div>
       <p class="msg" id="change-msg"></p>
       <button class="btn-primary" id="changeBtn" onclick="handleChangePassword()">
-        <span class="btn-spinner"></span><span class="btn-text">UPDATE PASSWORD</span>
+        <span class="btn-spinner"></span><span class="btn-text">Update Password</span>
       </button>
       <div class="link-row"><button class="link-btn" onclick="switchTab('login')">← Back to Login</button></div>
     </div>
@@ -268,174 +317,119 @@
 </div>
 
 <script>
-  /* ── Tab switching ── */
   function switchTab(name) {
-    document.querySelectorAll(".tab-btn").forEach((b) =>
-      b.classList.toggle("active", b.dataset.tab === name));
-    document.querySelectorAll(".panel").forEach((p) =>
-      p.classList.toggle("active", p.id === "panel-" + name));
+    document.querySelectorAll(".tab-btn").forEach((b) => b.classList.toggle("active", b.dataset.tab === name));
+    document.querySelectorAll(".panel").forEach((p) => p.classList.toggle("active", p.id === "panel-" + name));
     clearMessages();
   }
-  document.querySelectorAll(".tab-btn").forEach((btn) =>
-    btn.addEventListener("click", () => switchTab(btn.dataset.tab)));
+  document.querySelectorAll(".tab-btn").forEach((btn) => btn.addEventListener("click", () => switchTab(btn.dataset.tab)));
 
-  /* ── Eye toggle ── */
   function togglePwd(id, btn) {
     const inp = document.getElementById(id);
     const showing = inp.type === "text";
     inp.type = showing ? "password" : "text";
-    btn.style.opacity = showing ? "1" : ".5";
+    btn.style.opacity = showing ? "1" : ".45";
   }
 
-  /* ── Password strength ── */
   const STRENGTH_LABELS = ["", "Weak", "Fair", "Good", "Strong"];
-  const STRENGTH_COLORS = ["", "#ff6b6b", "#ffa94d", "#69db7c", "#2f9e44"];
+  const STRENGTH_COLORS = ["", "#c0392b", "#e67e22", "#27ae60", "#1e7e34"];
   function updateStrength(val) {
     let score = 0;
-    if (val.length >= 8)            score++;
-    if (/[A-Z]/.test(val))          score++;
-    if (/[0-9]/.test(val))          score++;
-    if (/[^A-Za-z0-9]/.test(val))   score++;
-    const fill  = document.getElementById("strengthFill");
+    if (val.length >= 8) score++;
+    if (/[A-Z]/.test(val)) score++;
+    if (/[0-9]/.test(val)) score++;
+    if (/[^A-Za-z0-9]/.test(val)) score++;
+    const fill = document.getElementById("strengthFill");
     const label = document.getElementById("strengthLabel");
-    fill.style.width      = (score / 4 * 100) + "%";
+    fill.style.width = (score / 4 * 100) + "%";
     fill.style.background = val ? STRENGTH_COLORS[score] : "";
-    label.textContent     = val ? STRENGTH_LABELS[score] : "";
-    label.style.color     = val ? STRENGTH_COLORS[score] : "";
+    label.textContent = val ? STRENGTH_LABELS[score] : "";
+    label.style.color = val ? STRENGTH_COLORS[score] : "";
   }
 
-  /* ── Message helpers ── */
   function setMsg(id, text, type) {
     const el = document.getElementById(id);
-    el.textContent = text;
-    el.className   = "msg " + (type || "");
+    el.textContent = text; el.className = "msg " + (type || "");
   }
   function clearMessages() {
     document.querySelectorAll(".msg").forEach((m) => { m.textContent = ""; m.className = "msg"; });
     document.querySelectorAll("input").forEach((i) => i.classList.remove("error-field"));
   }
-
-  /* ── Loading state ── */
   function setLoading(btnId, loading) {
     const btn = document.getElementById(btnId);
-    btn.disabled = loading;
-    btn.classList.toggle("loading", loading);
+    btn.disabled = loading; btn.classList.toggle("loading", loading);
   }
 
-  /* ── Validation ── */
   const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   function validateEmail(val, fieldId, msgId) {
     if (!val || !EMAIL_RE.test(val)) {
       setMsg(msgId, "Please enter a valid email address.", "error");
-      document.getElementById(fieldId).classList.add("error-field");
-      return false;
+      document.getElementById(fieldId).classList.add("error-field"); return false;
     }
     return true;
   }
   function validatePassword(val, fieldId, msgId, label) {
     if (val.length < 8) {
       setMsg(msgId, (label || "Password") + " must be at least 8 characters.", "error");
-      document.getElementById(fieldId).classList.add("error-field");
-      return false;
+      document.getElementById(fieldId).classList.add("error-field"); return false;
     }
     return true;
   }
 
-  /* ── API call helper ── */
   async function apiPost(url, body) {
-    const res = await fetch(url, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body),
-    });
+    const res = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
     return { status: res.status, data: await res.json() };
   }
 
-  /* ── LOGIN ── */
   async function handleLogin() {
     clearMessages();
     const email = document.getElementById("login-email").value.trim();
     const pwd   = document.getElementById("login-password").value;
     if (!validateEmail(email, "login-email", "login-msg")) return;
     if (!pwd) { setMsg("login-msg", "Password is required.", "error"); document.getElementById("login-password").classList.add("error-field"); return; }
-
     setLoading("loginBtn", true);
     try {
       const { status, data } = await apiPost("/api/auth/login", { email, password: pwd });
-      if (status === 200) {
-        setMsg("login-msg", "Welcome back! Redirecting…", "success");
-        setTimeout(() => window.location.href = "/notes", 600);
-      } else {
-        setMsg("login-msg", data.error || "Login failed.", "error");
-      }
-    } catch (_) {
-      setMsg("login-msg", "Network error. Please try again.", "error");
-    } finally {
-      setLoading("loginBtn", false);
-    }
+      if (status === 200) { setMsg("login-msg", "Welcome back!", "success"); setTimeout(() => window.location.href = "/notes", 600); }
+      else setMsg("login-msg", data.error || "Login failed.", "error");
+    } catch (_) { setMsg("login-msg", "Network error. Please try again.", "error"); }
+    finally { setLoading("loginBtn", false); }
   }
 
-  /* ── SIGN UP ── */
   async function handleSignup() {
     clearMessages();
     const email  = document.getElementById("signup-email").value.trim();
     const pwd    = document.getElementById("signup-password").value;
     const repeat = document.getElementById("signup-repeat").value;
-    if (!validateEmail(email, "signup-email", "signup-msg"))         return;
-    if (!validatePassword(pwd, "signup-password", "signup-msg"))     return;
-    if (pwd !== repeat) {
-      setMsg("signup-msg", "Passwords do not match.", "error");
-      document.getElementById("signup-repeat").classList.add("error-field");
-      return;
-    }
-
+    if (!validateEmail(email, "signup-email", "signup-msg")) return;
+    if (!validatePassword(pwd, "signup-password", "signup-msg")) return;
+    if (pwd !== repeat) { setMsg("signup-msg", "Passwords do not match.", "error"); document.getElementById("signup-repeat").classList.add("error-field"); return; }
     setLoading("signupBtn", true);
     try {
       const { status, data } = await apiPost("/api/auth/signup", { email, password: pwd });
-      if (status === 201) {
-        setMsg("signup-msg", "Account created! Taking you in…", "success");
-        setTimeout(() => window.location.href = "/notes", 700);
-      } else {
-        setMsg("signup-msg", data.error || "Sign-up failed.", "error");
-      }
-    } catch (_) {
-      setMsg("signup-msg", "Network error. Please try again.", "error");
-    } finally {
-      setLoading("signupBtn", false);
-    }
+      if (status === 201) { setMsg("signup-msg", "Account created! Taking you in…", "success"); setTimeout(() => window.location.href = "/notes", 700); }
+      else setMsg("signup-msg", data.error || "Sign-up failed.", "error");
+    } catch (_) { setMsg("signup-msg", "Network error. Please try again.", "error"); }
+    finally { setLoading("signupBtn", false); }
   }
 
-  /* ── CHANGE PASSWORD ── */
   async function handleChangePassword() {
     clearMessages();
     const email   = document.getElementById("change-email").value.trim();
     const newPwd  = document.getElementById("change-new").value;
     const confirm = document.getElementById("change-confirm").value;
-    if (!validateEmail(email, "change-email", "change-msg"))              return;
+    if (!validateEmail(email, "change-email", "change-msg")) return;
     if (!validatePassword(newPwd, "change-new", "change-msg", "New password")) return;
-    if (newPwd !== confirm) {
-      setMsg("change-msg", "Passwords do not match.", "error");
-      document.getElementById("change-confirm").classList.add("error-field");
-      return;
-    }
-
+    if (newPwd !== confirm) { setMsg("change-msg", "Passwords do not match.", "error"); document.getElementById("change-confirm").classList.add("error-field"); return; }
     setLoading("changeBtn", true);
     try {
-      const { status, data } = await apiPost("/api/auth/change-password",
-        { email, new_password: newPwd });
-      if (data.ok) {
-        setMsg("change-msg", data.message || "Password updated.", "success");
-      } else {
-        setMsg("change-msg", data.error || "Something went wrong.", "error");
-      }
-    } catch (_) {
-      setMsg("change-msg", "Network error. Please try again.", "error");
-    } finally {
-      setLoading("changeBtn", false);
-    }
+      const { status, data } = await apiPost("/api/auth/change-password", { email, new_password: newPwd });
+      if (data.ok) setMsg("change-msg", data.message || "Password updated.", "success");
+      else setMsg("change-msg", data.error || "Something went wrong.", "error");
+    } catch (_) { setMsg("change-msg", "Network error. Please try again.", "error"); }
+    finally { setLoading("changeBtn", false); }
   }
 
-  /* ── Enter key ── */
   document.addEventListener("keydown", (e) => {
     if (e.key !== "Enter" || e.target.tagName === "BUTTON") return;
     const panel = document.querySelector(".panel.active");
