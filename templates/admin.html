@@ -1,0 +1,857 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Notes — Admin</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Work+Sans:ital,wght@0,300..800;1,300..800&display=swap" rel="stylesheet">
+<style>
+/* ── Reset & tokens ── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --cream:       #f0ece0;
+  --cream-light: #faf7f0;
+  --parchment:   #fdfcf8;
+  --forest:      #3a6b32;
+  --forest-deep: #2a4e24;
+  --moss:        #5a7c50;
+  --divider:     #d4ccbc;
+  --text:        #1e1b14;
+  --text-muted:  #7a7260;
+  --danger:      #c0392b;
+  --danger-bg:   rgba(192,57,43,.08);
+  --success:     #27ae60;
+  --warn:        #e67e22;
+  --font-h:      'Instrument Serif', Georgia, serif;
+  --font:        'Work Sans', -apple-system, sans-serif;
+  --radius:      8px;
+  --shadow:      0 2px 12px rgba(30,27,20,.10);
+  --shadow-lg:   0 8px 32px rgba(30,27,20,.18);
+  --ease:        .18s cubic-bezier(.4,0,.2,1);
+}
+html, body { height: 100%; font-family: var(--font); background: var(--cream); color: var(--text); -webkit-font-smoothing: antialiased; }
+button { font-family: var(--font); cursor: pointer; }
+input  { font-family: var(--font); }
+.hidden { display: none !important; }
+
+/* ─────────────────────────────────────────
+   LOGIN SCREEN
+───────────────────────────────────────── */
+#loginScreen {
+  min-height: 100vh;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--cream);
+  position: relative; overflow: hidden;
+}
+#loginScreen::before {
+  content: ""; position: absolute;
+  top: -120px; right: -80px;
+  width: 520px; height: 520px; border-radius: 50%;
+  background: radial-gradient(circle at 40% 40%, rgba(58,107,50,.13) 0%, transparent 70%);
+}
+#loginScreen::after {
+  content: ""; position: absolute;
+  bottom: -80px; left: -80px;
+  width: 420px; height: 400px; border-radius: 50%;
+  background: radial-gradient(circle at 60% 60%, rgba(90,124,80,.10) 0%, transparent 70%);
+}
+
+.login-card {
+  position: relative; z-index: 1;
+  background: var(--parchment);
+  border: 1px solid var(--divider);
+  border-radius: 16px;
+  padding: 44px 40px 36px;
+  width: 100%; max-width: 380px;
+  box-shadow: var(--shadow-lg);
+}
+.login-logo {
+  text-align: center; margin-bottom: 6px;
+}
+.login-logo svg { display: inline-block; }
+.login-title {
+  font-family: var(--font-h); font-size: 28px; font-style: italic;
+  color: var(--forest-deep); text-align: center; margin-bottom: 4px;
+}
+.login-subtitle {
+  font-size: 12.5px; color: var(--text-muted);
+  text-align: center; margin-bottom: 28px; letter-spacing: .03em;
+}
+
+.field { display: flex; flex-direction: column; gap: 5px; margin-bottom: 14px; }
+.field label {
+  font-size: 11.5px; font-weight: 700; letter-spacing: .07em;
+  text-transform: uppercase; color: var(--text-muted);
+}
+.field-wrap { position: relative; }
+.field-wrap .field-icon {
+  position: absolute; left: 12px; top: 50%; transform: translateY(-50%);
+  color: var(--text-muted); display: flex; align-items: center; pointer-events: none;
+}
+.field-wrap input {
+  width: 100%;
+  background: var(--cream-light); border: 1.5px solid var(--divider); border-radius: var(--radius);
+  padding: 10px 12px 10px 38px; font-size: 13.5px; color: var(--text);
+  outline: none; transition: border-color var(--ease), box-shadow var(--ease);
+}
+.field-wrap input:focus {
+  border-color: var(--forest);
+  box-shadow: 0 0 0 3px rgba(58,107,50,.12);
+}
+.field-wrap input.err { border-color: var(--danger); box-shadow: 0 0 0 3px rgba(192,57,43,.10); }
+.eye-btn {
+  position: absolute; right: 11px; top: 50%; transform: translateY(-50%);
+  background: transparent; border: none; color: var(--text-muted); padding: 0;
+  display: flex; align-items: center; transition: color var(--ease);
+}
+.eye-btn:hover { color: var(--forest); }
+
+.login-msg {
+  min-height: 18px; font-size: 12.5px; font-weight: 600;
+  text-align: center; margin-bottom: 6px;
+}
+.login-msg.err { color: var(--danger); }
+
+.btn-primary {
+  width: 100%; padding: 11px; border: none; border-radius: var(--radius);
+  background: var(--forest); color: #fff;
+  font-family: var(--font); font-size: 14px; font-weight: 700;
+  letter-spacing: .07em; text-transform: uppercase;
+  cursor: pointer; transition: background var(--ease), transform .1s, box-shadow .1s;
+  box-shadow: 0 3px 14px rgba(42,78,36,.28);
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+}
+.btn-primary:hover:not(:disabled) { background: var(--forest-deep); transform: translateY(-1px); }
+.btn-primary:active:not(:disabled) { transform: none; }
+.btn-primary:disabled { opacity: .6; cursor: not-allowed; }
+.btn-spinner {
+  width: 14px; height: 14px; border-radius: 50%;
+  border: 2px solid rgba(255,255,255,.35); border-top-color: #fff;
+  animation: spin .7s linear infinite; display: none;
+}
+.btn-primary.loading .btn-spinner { display: block; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.login-badge {
+  margin-top: 22px; padding: 10px 14px;
+  background: rgba(58,107,50,.07); border: 1px solid rgba(58,107,50,.2);
+  border-radius: 8px; text-align: center;
+  font-size: 12px; color: var(--moss); font-weight: 600;
+}
+
+/* ─────────────────────────────────────────
+   ADMIN SHELL (shown after login)
+───────────────────────────────────────── */
+#adminShell { display: flex; flex-direction: column; height: 100vh; }
+
+.admin-topbar {
+  height: 52px; flex-shrink: 0;
+  background: var(--forest-deep); color: #fff;
+  display: flex; align-items: center;
+  padding: 0 24px; gap: 16px;
+  box-shadow: 0 2px 8px rgba(0,0,0,.18);
+}
+.admin-topbar-logo {
+  font-family: var(--font-h); font-style: italic; font-size: 20px;
+  color: #fff; letter-spacing: .01em;
+}
+.admin-topbar-label {
+  font-size: 11px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase;
+  background: rgba(255,255,255,.18); color: rgba(255,255,255,.85);
+  border-radius: 20px; padding: 2px 10px;
+}
+.admin-topbar-user {
+  font-size: 12.5px; color: rgba(255,255,255,.7);
+  display: flex; align-items: center; gap: 6px;
+  margin-left: auto;
+}
+.admin-logout-btn {
+  border: 1px solid rgba(255,255,255,.35); background: transparent; color: #fff;
+  border-radius: 6px; padding: 4px 12px;
+  font-family: var(--font); font-size: 12px; font-weight: 600;
+  cursor: pointer; transition: background var(--ease);
+}
+.admin-logout-btn:hover { background: rgba(255,255,255,.15); }
+
+/* Tabs */
+.admin-tabs {
+  background: var(--cream); border-bottom: 1.5px solid var(--divider);
+  display: flex; padding: 0 24px; flex-shrink: 0;
+}
+.admin-tab {
+  border: none; background: transparent; color: var(--text-muted);
+  font-family: var(--font); font-size: 13.5px; font-weight: 600;
+  padding: 12px 20px 11px; cursor: pointer; position: relative;
+  transition: color var(--ease);
+}
+.admin-tab::after {
+  content: ""; position: absolute; bottom: -1.5px; left: 0; right: 0;
+  height: 2.5px; background: var(--forest);
+  border-radius: 2px 2px 0 0; opacity: 0; transition: opacity var(--ease);
+}
+.admin-tab.active { color: var(--forest-deep); }
+.admin-tab.active::after { opacity: 1; }
+
+/* Tab content */
+.admin-content { flex: 1; overflow-y: auto; padding: 28px 28px 40px; }
+.tab-panel { display: none; }
+.tab-panel.active { display: block; }
+
+/* Section heading */
+.section-heading {
+  font-family: var(--font-h); font-size: 22px; font-style: italic;
+  color: var(--forest-deep); margin-bottom: 4px;
+}
+.section-sub {
+  font-size: 13px; color: var(--text-muted); margin-bottom: 22px;
+}
+
+/* ─────────────────────────────────────────
+   CREATE USER CARD
+───────────────────────────────────────── */
+.create-user-card {
+  background: var(--parchment); border: 1px solid var(--divider);
+  border-radius: 12px; padding: 24px 26px;
+  max-width: 480px; margin-bottom: 36px;
+  box-shadow: var(--shadow);
+}
+.create-user-card h3 {
+  font-family: var(--font-h); font-size: 17px; font-style: italic;
+  color: var(--text); margin-bottom: 18px;
+  padding-bottom: 12px; border-bottom: 1px solid var(--divider);
+}
+.form-row { display: flex; gap: 14px; }
+.form-field { flex: 1; display: flex; flex-direction: column; gap: 5px; }
+.form-field label {
+  font-size: 11px; font-weight: 700; letter-spacing: .07em;
+  text-transform: uppercase; color: var(--text-muted);
+}
+.form-field input {
+  background: var(--cream-light); border: 1.5px solid var(--divider);
+  border-radius: var(--radius); padding: 9px 12px;
+  font-size: 13.5px; color: var(--text); outline: none;
+  transition: border-color var(--ease), box-shadow var(--ease);
+}
+.form-field input:focus { border-color: var(--forest); box-shadow: 0 0 0 3px rgba(58,107,50,.12); }
+.form-field input.err { border-color: var(--danger); }
+
+.create-actions { margin-top: 16px; display: flex; align-items: center; gap: 12px; }
+.btn-create {
+  padding: 9px 22px; border: none; border-radius: var(--radius);
+  background: var(--forest); color: #fff;
+  font-family: var(--font); font-size: 13px; font-weight: 700;
+  cursor: pointer; transition: background var(--ease), transform .1s;
+  display: flex; align-items: center; gap: 6px;
+}
+.btn-create:hover { background: var(--forest-deep); transform: translateY(-1px); }
+.btn-create:active { transform: none; }
+.btn-create:disabled { opacity: .55; cursor: not-allowed; transform: none; }
+.create-msg {
+  font-size: 12.5px; font-weight: 600; min-height: 18px;
+}
+.create-msg.ok  { color: var(--success); }
+.create-msg.err { color: var(--danger); }
+
+/* ─────────────────────────────────────────
+   USER TABLE SECTION
+───────────────────────────────────────── */
+.manage-heading {
+  font-family: var(--font-h); font-size: 17px; font-style: italic;
+  color: var(--text); margin-bottom: 14px;
+}
+
+.table-toolbar {
+  display: flex; align-items: center; gap: 12px; margin-bottom: 14px; flex-wrap: wrap;
+}
+.search-wrap {
+  flex: 1; min-width: 200px; max-width: 360px;
+  display: flex; align-items: center; gap: 6px;
+  background: var(--parchment); border: 1.5px solid var(--divider);
+  border-radius: var(--radius); padding: 7px 12px;
+  transition: border-color var(--ease);
+}
+.search-wrap:focus-within { border-color: var(--forest); }
+.search-wrap svg { color: var(--text-muted); flex-shrink: 0; }
+.search-wrap input {
+  border: none; background: transparent; outline: none;
+  font-family: var(--font); font-size: 13.5px; color: var(--text); flex: 1;
+}
+.search-wrap input::placeholder { color: var(--text-muted); }
+.user-count {
+  font-size: 12.5px; color: var(--text-muted); font-weight: 600;
+  white-space: nowrap;
+}
+
+/* Table */
+.user-table-wrap {
+  background: var(--parchment); border: 1px solid var(--divider);
+  border-radius: 12px; overflow: hidden; box-shadow: var(--shadow);
+}
+.user-table {
+  width: 100%; border-collapse: collapse; font-size: 13.5px;
+}
+.user-table thead { background: var(--cream); }
+.user-table th {
+  text-align: left; padding: 11px 14px;
+  font-size: 11px; font-weight: 700; letter-spacing: .07em;
+  text-transform: uppercase; color: var(--text-muted);
+  border-bottom: 1.5px solid var(--divider); white-space: nowrap;
+}
+.user-table td {
+  padding: 11px 14px; border-bottom: 1px solid var(--divider);
+  vertical-align: middle; color: var(--text);
+}
+.user-table tbody tr:last-child td { border-bottom: none; }
+.user-table tbody tr:hover { background: rgba(58,107,50,.04); }
+
+.user-id     { color: var(--text-muted); font-size: 12px; font-weight: 600; }
+.user-name   { font-weight: 600; }
+.user-since  { color: var(--text-muted); font-size: 12.5px; white-space: nowrap; }
+.user-pw     { color: var(--text-muted); font-size: 12px; letter-spacing: .06em; }
+
+/* Enable toggle */
+.toggle-wrap { display: flex; align-items: center; gap: 6px; }
+.toggle {
+  appearance: none; -webkit-appearance: none;
+  width: 38px; height: 21px; border-radius: 100px;
+  background: #ccc; cursor: pointer; position: relative;
+  transition: background .2s; flex-shrink: 0;
+}
+.toggle::after {
+  content: ""; position: absolute; left: 2px; top: 2px;
+  width: 17px; height: 17px; border-radius: 50%; background: #fff;
+  box-shadow: 0 1px 3px rgba(0,0,0,.22);
+  transition: left .2s;
+}
+.toggle:checked { background: var(--forest); }
+.toggle:checked::after { left: 19px; }
+.toggle-label { font-size: 12px; color: var(--text-muted); }
+
+/* Row action buttons */
+.row-actions { display: flex; align-items: center; gap: 6px; }
+.btn-icon {
+  width: 30px; height: 30px; border: 1px solid var(--divider);
+  background: transparent; border-radius: 6px; color: var(--text-muted);
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; transition: all var(--ease);
+}
+.btn-icon:hover { border-color: var(--forest); color: var(--forest); background: rgba(58,107,50,.07); }
+.btn-icon.danger:hover { border-color: var(--danger); color: var(--danger); background: var(--danger-bg); }
+
+/* Edit inline input */
+.edit-input {
+  background: #fff; border: 1.5px solid var(--forest); border-radius: 5px;
+  padding: 3px 8px; font-size: 13px; font-family: var(--font);
+  color: var(--text); outline: none; width: 120px;
+}
+
+/* Empty / loading state */
+.table-empty {
+  text-align: center; padding: 36px 20px;
+  color: var(--text-muted); font-style: italic; font-family: var(--font-h);
+  font-size: 15px;
+}
+
+/* Toast */
+#adminToast {
+  position: fixed; bottom: 28px; left: 50%;
+  transform: translateX(-50%) translateY(12px);
+  background: var(--forest-deep); color: #fff;
+  font-family: var(--font); font-size: 13px; font-weight: 600;
+  padding: 10px 22px; border-radius: 24px;
+  box-shadow: 0 6px 24px rgba(30,27,20,.28);
+  z-index: 999; opacity: 0;
+  transition: opacity .22s, transform .22s;
+  pointer-events: none; white-space: nowrap;
+}
+#adminToast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+/* Modal overlay for edit */
+.modal-overlay {
+  position: fixed; inset: 0; background: rgba(30,27,20,.4);
+  z-index: 200; display: flex; align-items: center; justify-content: center;
+}
+.modal-overlay.hidden { display: none; }
+.modal-card {
+  background: var(--parchment); border: 1px solid var(--divider);
+  border-radius: 14px; padding: 28px 28px 24px;
+  width: 100%; max-width: 380px;
+  box-shadow: 0 16px 48px rgba(30,27,20,.3);
+  animation: modalIn .18s ease;
+}
+@keyframes modalIn { from { opacity:0; transform:translateY(-10px); } to { opacity:1; transform:none; } }
+.modal-title {
+  font-family: var(--font-h); font-size: 19px; font-style: italic;
+  color: var(--forest-deep); margin-bottom: 20px;
+  padding-bottom: 14px; border-bottom: 1px solid var(--divider);
+}
+.modal-actions { margin-top: 20px; display: flex; gap: 10px; justify-content: flex-end; }
+.btn-cancel {
+  border: 1px solid var(--divider); background: transparent; color: var(--text-muted);
+  border-radius: var(--radius); padding: 8px 18px;
+  font-family: var(--font); font-size: 13px; font-weight: 600; cursor: pointer;
+  transition: all var(--ease);
+}
+.btn-cancel:hover { border-color: var(--text-muted); color: var(--text); }
+.btn-save {
+  border: none; background: var(--forest); color: #fff;
+  border-radius: var(--radius); padding: 8px 20px;
+  font-family: var(--font); font-size: 13px; font-weight: 700; cursor: pointer;
+  transition: background var(--ease);
+}
+.btn-save:hover { background: var(--forest-deep); }
+.modal-msg { font-size: 12.5px; font-weight: 600; margin-top: 8px; min-height: 18px; }
+.modal-msg.err { color: var(--danger); }
+.modal-msg.ok  { color: var(--success); }
+
+@media (max-width: 640px) {
+  .form-row { flex-direction: column; }
+  .admin-content { padding: 16px; }
+  .user-table th:nth-child(4),
+  .user-table td:nth-child(4) { display: none; } /* hide "User Since" on small */
+}
+</style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════
+     LOGIN SCREEN
+═══════════════════════════════════════════ -->
+<div id="loginScreen">
+  <div class="login-card">
+    <div class="login-logo">
+      <svg width="44" height="44" viewBox="0 0 44 44" fill="none">
+        <rect x="6" y="4" width="26" height="34" rx="3.5" stroke="#3a6b32" stroke-width="2" fill="none"/>
+        <path d="M32 8l6 6v24a3.5 3.5 0 0 1-3.5 3.5H10" stroke="#3a6b32" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M32 8h6M32 8V14" stroke="#3a6b32" stroke-width="2" stroke-linecap="round"/>
+        <path d="M12 18h16M12 23h16M12 28h9" stroke="#5a7c50" stroke-width="1.6" stroke-linecap="round"/>
+      </svg>
+    </div>
+    <div class="login-title">Notes Admin</div>
+    <div class="login-subtitle">SUPERUSER ACCESS ONLY</div>
+
+    <div class="field">
+      <label>User ID</label>
+      <div class="field-wrap">
+        <span class="field-icon">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+        </span>
+        <input type="text" id="adminUid" placeholder="superuser" autocomplete="username">
+      </div>
+    </div>
+
+    <div class="field">
+      <label>Password</label>
+      <div class="field-wrap">
+        <span class="field-icon">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>
+        </span>
+        <input type="password" id="adminPassword" placeholder="••••••••" autocomplete="current-password">
+        <button class="eye-btn" type="button" tabindex="-1" onclick="togglePwd('adminPassword',this)" aria-label="Show">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12z"/><circle cx="12" cy="12" r="3"/></svg>
+        </button>
+      </div>
+    </div>
+
+    <div class="login-msg" id="loginMsg"></div>
+
+    <button class="btn-primary" id="loginBtn" onclick="doAdminLogin()">
+      <span class="btn-spinner"></span>
+      <span>Sign In</span>
+    </button>
+
+    <div class="login-badge">🔒 Admin panel — restricted access</div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════
+     ADMIN SHELL
+═══════════════════════════════════════════ -->
+<div id="adminShell" class="hidden">
+
+  <!-- Topbar -->
+  <div class="admin-topbar">
+    <span class="admin-topbar-logo">Notes</span>
+    <span class="admin-topbar-label">Admin</span>
+    <div class="admin-topbar-user">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+      superuser
+      <button class="admin-logout-btn" onclick="doAdminLogout()">Sign Out</button>
+    </div>
+  </div>
+
+  <!-- Tabs -->
+  <div class="admin-tabs">
+    <button class="admin-tab active" data-tab="members">Members</button>
+  </div>
+
+  <!-- Content -->
+  <div class="admin-content">
+
+    <!-- MEMBERS TAB -->
+    <div class="tab-panel active" id="tab-members">
+
+      <!-- Create New User -->
+      <div class="create-user-card">
+        <h3>Create New User</h3>
+        <div class="form-row">
+          <div class="form-field">
+            <label>Username</label>
+            <input type="text" id="newUsername" placeholder="e.g. jane_doe" autocomplete="off">
+          </div>
+          <div class="form-field">
+            <label>Password</label>
+            <input type="password" id="newPassword" placeholder="Min. 6 characters">
+          </div>
+        </div>
+        <div class="create-actions">
+          <button class="btn-create" id="createUserBtn" onclick="createUser()">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+            Create User
+          </button>
+          <span class="create-msg" id="createMsg"></span>
+        </div>
+      </div>
+
+      <!-- Manage Users -->
+      <div class="manage-heading">Managing User Accounts</div>
+
+      <div class="table-toolbar">
+        <div class="search-wrap">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+          <input type="text" id="userSearch" placeholder="Search by username…" oninput="filterUsers()">
+        </div>
+        <span class="user-count" id="userCount"></span>
+      </div>
+
+      <div class="user-table-wrap">
+        <table class="user-table">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Username</th>
+              <th>Password</th>
+              <th>User Since</th>
+              <th>Enabled</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="userTableBody">
+            <tr><td colspan="6" class="table-empty">Loading…</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+    </div><!-- /tab-members -->
+
+  </div><!-- /admin-content -->
+</div><!-- /adminShell -->
+
+<!-- Edit User Modal -->
+<div class="modal-overlay hidden" id="editModal">
+  <div class="modal-card">
+    <div class="modal-title">Edit User</div>
+    <input type="hidden" id="editUserId">
+    <div class="form-field" style="margin-bottom:14px">
+      <label>Username</label>
+      <input type="text" id="editUsername" class="form-field" style="width:100%;padding:9px 12px;border:1.5px solid var(--divider);border-radius:8px;font-size:13.5px;outline:none;" placeholder="Username">
+    </div>
+    <div class="form-field">
+      <label>New Password <span style="color:var(--text-muted);font-weight:400">(leave blank to keep current)</span></label>
+      <input type="password" id="editPassword" style="width:100%;padding:9px 12px;border:1.5px solid var(--divider);border-radius:8px;font-size:13.5px;outline:none;" placeholder="New password">
+    </div>
+    <div class="modal-msg" id="editMsg"></div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeEditModal()">Cancel</button>
+      <button class="btn-save" onclick="saveEditUser()">Save Changes</button>
+    </div>
+  </div>
+</div>
+
+<div id="adminToast"></div>
+
+<script>
+/* ── Shared ── */
+function togglePwd(id, btn) {
+  const inp = document.getElementById(id);
+  inp.type = inp.type === "text" ? "password" : "text";
+  btn.style.opacity = inp.type === "password" ? "1" : ".45";
+}
+
+function showToast(msg, dur = 2400) {
+  const t = document.getElementById("adminToast");
+  t.textContent = msg; t.classList.add("show");
+  clearTimeout(t._t); t._t = setTimeout(() => t.classList.remove("show"), dur);
+}
+
+async function apiCall(url, opts = {}) {
+  const res = await fetch(url, {
+    headers: { "Content-Type": "application/json" },
+    ...opts,
+  });
+  return { status: res.status, data: await res.json() };
+}
+
+/* ── Admin login ── */
+async function doAdminLogin() {
+  const uid = document.getElementById("adminUid").value.trim();
+  const pwd = document.getElementById("adminPassword").value;
+  const msg = document.getElementById("loginMsg");
+  const btn = document.getElementById("loginBtn");
+
+  if (!uid || !pwd) { msg.textContent = "Please enter your User ID and password."; msg.className = "login-msg err"; return; }
+
+  btn.disabled = true; btn.classList.add("loading");
+  msg.textContent = ""; msg.className = "login-msg";
+
+  try {
+    const { status, data } = await apiCall("/api/admin/login", { method: "POST", body: JSON.stringify({ uid, password: pwd }) });
+    if (status === 200) {
+      document.getElementById("loginScreen").classList.add("hidden");
+      document.getElementById("adminShell").classList.remove("hidden");
+      loadUsers();
+    } else {
+      msg.textContent = data.error || "Login failed.";
+      msg.className = "login-msg err";
+    }
+  } catch (_) {
+    msg.textContent = "Network error. Please try again.";
+    msg.className = "login-msg err";
+  } finally {
+    btn.disabled = false; btn.classList.remove("loading");
+  }
+}
+
+async function doAdminLogout() {
+  await apiCall("/api/admin/logout", { method: "POST" });
+  document.getElementById("adminShell").classList.add("hidden");
+  document.getElementById("loginScreen").classList.remove("hidden");
+  document.getElementById("loginMsg").textContent = "";
+  document.getElementById("adminUid").value = "";
+  document.getElementById("adminPassword").value = "";
+}
+
+/* Check if already logged in on page load */
+(async function checkAdminSession() {
+  try {
+    const { data } = await apiCall("/api/admin/me");
+    if (data.logged_in) {
+      document.getElementById("loginScreen").classList.add("hidden");
+      document.getElementById("adminShell").classList.remove("hidden");
+      loadUsers();
+    }
+  } catch (_) {}
+})();
+
+/* Enter key on login */
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Enter" && !document.getElementById("loginScreen").classList.contains("hidden")) {
+    doAdminLogin();
+  }
+});
+
+/* ── Tab switching ── */
+document.querySelectorAll(".admin-tab").forEach(btn => {
+  btn.addEventListener("click", () => {
+    document.querySelectorAll(".admin-tab").forEach(b => b.classList.toggle("active", b === btn));
+    document.querySelectorAll(".tab-panel").forEach(p => p.classList.toggle("active", p.id === "tab-" + btn.dataset.tab));
+  });
+});
+
+/* ── User data ── */
+let allUsers = [];
+
+async function loadUsers() {
+  const q = (document.getElementById("userSearch")?.value || "").trim();
+  try {
+    const { data } = await apiCall(`/api/admin/users${q ? "?q=" + encodeURIComponent(q) : ""}`);
+    allUsers = data;
+    renderUsers(data);
+  } catch (_) {
+    document.getElementById("userTableBody").innerHTML =
+      `<tr><td colspan="6" class="table-empty">Failed to load users.</td></tr>`;
+  }
+}
+
+function filterUsers() {
+  const q = document.getElementById("userSearch").value.trim().toLowerCase();
+  const filtered = q ? allUsers.filter(u =>
+    (u.username || "").toLowerCase().includes(q) ||
+    (u.email || "").toLowerCase().includes(q)
+  ) : allUsers;
+  renderUsers(filtered);
+}
+
+function renderUsers(users) {
+  const tbody = document.getElementById("userTableBody");
+  document.getElementById("userCount").textContent =
+    `${users.length} user${users.length !== 1 ? "s" : ""}`;
+
+  if (!users.length) {
+    tbody.innerHTML = `<tr><td colspan="6" class="table-empty">No users found.</td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = users.map(u => `
+    <tr id="row-${u.id}">
+      <td class="user-id">#${u.id}</td>
+      <td class="user-name">${esc(u.username)}</td>
+      <td class="user-pw">••••••••</td>
+      <td class="user-since">${esc(u.created_at)}</td>
+      <td>
+        <div class="toggle-wrap">
+          <input type="checkbox" class="toggle" id="toggle-${u.id}"
+            ${u.is_enabled ? "checked" : ""}
+            onchange="toggleEnable(${u.id}, this.checked)">
+          <label class="toggle-label" for="toggle-${u.id}">
+            ${u.is_enabled ? "Enabled" : "Disabled"}
+          </label>
+        </div>
+      </td>
+      <td>
+        <div class="row-actions">
+          <button class="btn-icon" title="Edit user" onclick="openEditModal(${u.id}, '${esc(u.username)}')">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+          </button>
+          <button class="btn-icon danger" title="Delete user" onclick="deleteUser(${u.id}, '${esc(u.username)}')">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
+          </button>
+        </div>
+      </td>
+    </tr>
+  `).join("");
+
+  // Update toggle labels live when checkbox changes
+  document.querySelectorAll(".toggle").forEach(cb => {
+    cb.addEventListener("change", function() {
+      const lbl = document.querySelector(`label[for="${this.id}"]`);
+      if (lbl) lbl.textContent = this.checked ? "Enabled" : "Disabled";
+    });
+  });
+}
+
+function esc(str) {
+  return String(str || "")
+    .replace(/&/g,"&amp;").replace(/</g,"&lt;")
+    .replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#39;");
+}
+
+/* ── Create user ── */
+async function createUser() {
+  const username = document.getElementById("newUsername").value.trim();
+  const password = document.getElementById("newPassword").value;
+  const msg      = document.getElementById("createMsg");
+  const btn      = document.getElementById("createUserBtn");
+
+  msg.textContent = ""; msg.className = "create-msg";
+  if (!username) { msg.textContent = "Username is required."; msg.className = "create-msg err"; return; }
+  if (password.length < 6) { msg.textContent = "Password must be at least 6 characters."; msg.className = "create-msg err"; return; }
+
+  btn.disabled = true;
+  try {
+    const { status, data } = await apiCall("/api/admin/users", {
+      method: "POST", body: JSON.stringify({ username, password }),
+    });
+    if (status === 201) {
+      msg.textContent = `User "${username}" created successfully.`;
+      msg.className   = "create-msg ok";
+      document.getElementById("newUsername").value = "";
+      document.getElementById("newPassword").value = "";
+      await loadUsers();
+      showToast(`✓ User "${username}" created`);
+    } else {
+      msg.textContent = data.error || "Failed to create user.";
+      msg.className   = "create-msg err";
+    }
+  } catch (_) {
+    msg.textContent = "Network error."; msg.className = "create-msg err";
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+/* ── Toggle enable/disable ── */
+async function toggleEnable(userId, enabled) {
+  try {
+    const { status, data } = await apiCall(`/api/admin/users/${userId}`, {
+      method: "PATCH", body: JSON.stringify({ is_enabled: enabled }),
+    });
+    if (status === 200) {
+      const u = allUsers.find(u => u.id === userId);
+      if (u) u.is_enabled = enabled;
+      showToast(enabled ? `User #${userId} enabled` : `User #${userId} disabled`);
+    }
+  } catch (_) {
+    showToast("Failed to update user.");
+    await loadUsers();
+  }
+}
+
+/* ── Delete user ── */
+async function deleteUser(userId, username) {
+  if (!confirm(`Delete user "${username}" and all their notes? This cannot be undone.`)) return;
+  try {
+    const { status } = await apiCall(`/api/admin/users/${userId}`, { method: "DELETE" });
+    if (status === 200) {
+      allUsers = allUsers.filter(u => u.id !== userId);
+      renderUsers(allUsers);
+      showToast(`User "${username}" deleted`);
+    }
+  } catch (_) { showToast("Failed to delete user."); }
+}
+
+/* ── Edit modal ── */
+function openEditModal(userId, username) {
+  document.getElementById("editUserId").value    = userId;
+  document.getElementById("editUsername").value  = username;
+  document.getElementById("editPassword").value  = "";
+  document.getElementById("editMsg").textContent = "";
+  document.getElementById("editMsg").className   = "modal-msg";
+  document.getElementById("editModal").classList.remove("hidden");
+}
+
+function closeEditModal() {
+  document.getElementById("editModal").classList.add("hidden");
+}
+
+async function saveEditUser() {
+  const userId   = Number(document.getElementById("editUserId").value);
+  const username = document.getElementById("editUsername").value.trim();
+  const password = document.getElementById("editPassword").value;
+  const msg      = document.getElementById("editMsg");
+
+  msg.textContent = ""; msg.className = "modal-msg";
+  if (!username) { msg.textContent = "Username is required."; msg.className = "modal-msg err"; return; }
+  if (password && password.length < 6) { msg.textContent = "Password must be at least 6 characters."; msg.className = "modal-msg err"; return; }
+
+  const payload = { username };
+  if (password) payload.password = password;
+
+  try {
+    const { status, data } = await apiCall(`/api/admin/users/${userId}`, {
+      method: "PATCH", body: JSON.stringify(payload),
+    });
+    if (status === 200) {
+      const u = allUsers.find(u => u.id === userId);
+      if (u) { u.username = data.username; }
+      renderUsers(allUsers);
+      showToast(`User #${userId} updated`);
+      closeEditModal();
+    } else {
+      msg.textContent = data.error || "Failed to update.";
+      msg.className   = "modal-msg err";
+    }
+  } catch (_) {
+    msg.textContent = "Network error."; msg.className = "modal-msg err";
+  }
+}
+
+/* Close modal on overlay click */
+document.getElementById("editModal").addEventListener("click", function(e) {
+  if (e.target === this) closeEditModal();
+});
+</script>
+</body>
+</html>

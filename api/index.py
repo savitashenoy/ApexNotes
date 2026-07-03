@@ -13,19 +13,22 @@ from datetime import datetime, timedelta, timezone
 from functools import wraps
 
 from flask import (Flask, Response, jsonify, redirect, render_template,
-                   request, url_for)
+                   request, session, url_for)
 from flask_login import (LoginManager, UserMixin, current_user, login_required,
                          login_user, logout_user)
 from flask_sqlalchemy import SQLAlchemy
 from werkzeug.security import check_password_hash, generate_password_hash
 
 # ── Paths ──────────────────────────────────────────────────────────────────
-# __file__ is  .../api/index.py  →  root is one level up
-ROOT        = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+ROOT         = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 TEMPLATE_DIR = os.path.join(ROOT, "templates")
 STATIC_DIR   = os.path.join(ROOT, "static")
 
 TRASH_RETENTION_DAYS = 30
+
+# ── Superuser credentials (hardcoded as requested) ─────────────────────────
+ADMIN_UID      = "superuser"
+ADMIN_PASSWORD = "June021999"
 
 
 def utcnow():
@@ -38,71 +41,42 @@ app = Flask(__name__,
             static_folder=STATIC_DIR,
             static_url_path="/static")
 
-# DATABASE_URL must be set in Vercel environment variables.
-# Vercel Postgres gives a URL starting with "postgres://"; SQLAlchemy needs "postgresql://"
 _db_url = os.environ.get("DATABASE_URL", "")
 if _db_url.startswith("postgres://"):
     _db_url = _db_url.replace("postgres://", "postgresql://", 1)
 
-# DATABASE_URL must be set in Vercel environment variables.
-# Vercel Postgres gives a URL starting with "postgres://"; SQLAlchemy needs "postgresql://"
-_db_url = os.environ.get("DATABASE_URL", "")
-if _db_url.startswith("postgres://"):
-    _db_url = _db_url.replace("postgres://", "postgresql://", 1)
-
-# Detect whether we're running on Vercel (VERCEL=1 is always set in that environment).
 _on_vercel = bool(os.environ.get("VERCEL"))
 
 if not _db_url:
     if _on_vercel:
-        # Vercel's filesystem is read-only/ephemeral — SQLite cannot work here.
-        # Fail loudly and immediately with a clear, actionable message instead
-        # of letting every request crash later with a confusing sqlite3 error.
         raise RuntimeError(
             "DATABASE_URL is not set. On Vercel you must configure a Postgres "
             "database and set the DATABASE_URL environment variable "
-            "(Project Settings -> Environment Variables), then redeploy. "
-            "SQLite cannot be used on Vercel because its filesystem is "
-            "read-only at runtime. See README.md for setup steps."
+            "(Project Settings -> Environment Variables), then redeploy."
         )
-    # Local development only — never used on Vercel.
     _db_url = "sqlite:///" + os.path.join(ROOT, "notes.db")
 
-app.config["SQLALCHEMY_DATABASE_URI"]         = _db_url
-app.config["SQLALCHEMY_TRACK_MODIFICATIONS"]  = False
-app.config["SQLALCHEMY_ENGINE_OPTIONS"]       = {
-    "pool_pre_ping": True,        # drop stale serverless connections
+app.config["SQLALCHEMY_DATABASE_URI"]        = _db_url
+app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
+app.config["SQLALCHEMY_ENGINE_OPTIONS"]      = {
+    "pool_pre_ping": True,
     "pool_recycle":  300,
     "connect_args":  {} if "sqlite" in _db_url else {"sslmode": "require"},
 }
 
-# SECRET_KEY signs the session cookie that keeps users logged in.
-# It MUST be stable across requests. On Vercel, a "cold start" can spin up a
-# brand-new function instance for any request — if SECRET_KEY is randomly
-# generated per-instance (as secrets.token_hex(32) does), a cookie signed by
-# instance A will fail to verify on instance B, and Flask-Login silently
-# treats the user as logged out. This is why actions like "create folder"
-# (or really any action, intermittently) were bouncing users back to login.
 _secret_key = os.environ.get("SECRET_KEY")
 if not _secret_key:
     if _on_vercel:
         raise RuntimeError(
             "SECRET_KEY is not set. On Vercel this MUST be a fixed value in "
             "your environment variables (Project Settings -> Environment "
-            "Variables), not auto-generated — otherwise every cold start "
-            "creates a new key, invalidating other instances' session "
-            "cookies and randomly logging users out. Generate one with: "
-            "python -c \"import secrets; print(secrets.token_hex(32))\" "
-            "and set it as SECRET_KEY, then redeploy. See README.md."
+            "Variables). Generate one with: "
+            "python -c \"import secrets; print(secrets.token_hex(32))\""
         )
-    # Local development only — fine to vary between runs.
     _secret_key = secrets.token_hex(32)
 
-app.config["SECRET_KEY"] = _secret_key
-
-# Make the session cookie behave correctly behind Vercel's HTTPS proxy and
-# survive across requests/tabs for the lifetime of "remember=True" logins.
-app.config["SESSION_COOKIE_SECURE"]   = _on_vercel   # HTTPS-only in production
+app.config["SECRET_KEY"]             = _secret_key
+app.config["SESSION_COOKIE_SECURE"]  = _on_vercel
 app.config["SESSION_COOKIE_HTTPONLY"] = True
 app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
 app.config["REMEMBER_COOKIE_SECURE"]  = _on_vercel
@@ -121,7 +95,9 @@ class User(UserMixin, db.Model):
     __tablename__ = "user"
     id            = db.Column(db.Integer, primary_key=True)
     email         = db.Column(db.String(254), unique=True, nullable=False)
+    username      = db.Column(db.String(80),  unique=True, nullable=True)
     password_hash = db.Column(db.String(256), nullable=False)
+    is_enabled    = db.Column(db.Boolean, default=True,  nullable=False)
     created_at    = db.Column(db.DateTime, default=utcnow)
 
     def set_password(self, plain):
@@ -131,7 +107,16 @@ class User(UserMixin, db.Model):
         return check_password_hash(self.password_hash, plain)
 
     def to_dict(self):
-        return {"id": self.id, "email": self.email}
+        return {"id": self.id, "email": self.email, "username": self.username}
+
+    def to_admin_dict(self):
+        return {
+            "id":         self.id,
+            "username":   self.username or self.email,
+            "email":      self.email,
+            "is_enabled": self.is_enabled,
+            "created_at": self.created_at.strftime("%Y-%m-%d"),
+        }
 
 
 @login_manager.user_loader
@@ -166,7 +151,7 @@ class Note(db.Model):
     snippet    = db.Column(db.Text, default="")
     pinned     = db.Column(db.Boolean, default=False, nullable=False)
     is_deleted = db.Column(db.Boolean, default=False, nullable=False)
-    sort_order = db.Column(db.Integer, default=0, nullable=False)
+    sort_order = db.Column(db.Integer, default=0,     nullable=False)
     created_at = db.Column(db.DateTime, default=utcnow)
     updated_at = db.Column(db.DateTime, default=utcnow, onupdate=utcnow)
     deleted_at = db.Column(db.DateTime, nullable=True)
@@ -191,7 +176,7 @@ class Note(db.Model):
         return d
 
 
-# ── DB init (lazy — safe for serverless cold starts) ───────────────────────
+# ── DB init ────────────────────────────────────────────────────────────────
 _db_initialised = False
 
 def ensure_db():
@@ -203,7 +188,6 @@ def ensure_db():
 
 @app.before_request
 def _before():
-    # Skip DB/auth work entirely for the favicon — it's a static, anonymous request.
     if request.path == "/favicon.ico":
         return
     ensure_db()
@@ -213,16 +197,11 @@ def _before():
 
 from sqlalchemy.exc import OperationalError, DatabaseError
 
-
 @app.errorhandler(OperationalError)
 @app.errorhandler(DatabaseError)
 def _handle_db_error(e):
     db.session.rollback()
-    return jsonify({
-        "error": "Could not connect to the database. Check that DATABASE_URL "
-                 "is set correctly in your environment variables and that the "
-                 "database is reachable, then retry."
-    }), 503
+    return jsonify({"error": "Could not connect to the database. Check DATABASE_URL."}), 503
 
 
 # ── Helpers ────────────────────────────────────────────────────────────────
@@ -282,6 +261,16 @@ def _api_login_required(f):
     return decorated
 
 
+def _admin_required(f):
+    """Decorator: reject non-admin requests with 401 JSON."""
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        if not session.get("admin_logged_in"):
+            return jsonify({"error": "Admin login required"}), 401
+        return f(*args, **kwargs)
+    return decorated
+
+
 def _own_note(note_id):
     return Note.query.filter_by(id=note_id, user_id=current_user.id).first_or_404()
 
@@ -290,7 +279,7 @@ def _own_folder(folder_id):
     return Folder.query.filter_by(id=folder_id, user_id=current_user.id).first_or_404()
 
 
-# ── Auth ───────────────────────────────────────────────────────────────────
+# ── User auth routes ───────────────────────────────────────────────────────
 @app.route("/api/auth/signup", methods=["POST"])
 def api_signup():
     data     = request.get_json(silent=True) or {}
@@ -302,7 +291,7 @@ def api_signup():
         return jsonify({"error": "Password must be at least 8 characters."}), 400
     if User.query.filter_by(email=email).first():
         return jsonify({"error": "An account with that email already exists."}), 409
-    user = User(email=email)
+    user = User(email=email, username=email.split("@")[0])
     user.set_password(password)
     db.session.add(user)
     db.session.commit()
@@ -323,6 +312,8 @@ def api_login():
     user = User.query.filter_by(email=email).first()
     if not user or not user.check_password(password):
         return jsonify({"error": "Incorrect email or password."}), 401
+    if not user.is_enabled:
+        return jsonify({"error": "This account has been disabled. Contact an administrator."}), 403
     login_user(user, remember=True)
     return jsonify({"ok": True, "user": user.to_dict()})
 
@@ -358,11 +349,117 @@ def api_me():
     return jsonify({"logged_in": False})
 
 
+# ── Admin auth routes ──────────────────────────────────────────────────────
+@app.route("/api/admin/login", methods=["POST"])
+def api_admin_login():
+    data = request.get_json(silent=True) or {}
+    uid  = (data.get("uid") or "").strip()
+    pwd  = data.get("password") or ""
+    if uid == ADMIN_UID and pwd == ADMIN_PASSWORD:
+        session["admin_logged_in"] = True
+        session.permanent = True
+        return jsonify({"ok": True})
+    return jsonify({"error": "Invalid admin credentials."}), 401
+
+
+@app.route("/api/admin/logout", methods=["POST"])
+def api_admin_logout():
+    session.pop("admin_logged_in", None)
+    return jsonify({"ok": True})
+
+
+@app.route("/api/admin/me")
+def api_admin_me():
+    return jsonify({"logged_in": bool(session.get("admin_logged_in"))})
+
+
+# ── Admin user management API ──────────────────────────────────────────────
+@app.route("/api/admin/users")
+@_admin_required
+def api_admin_list_users():
+    q    = (request.args.get("q") or "").strip()
+    query = User.query
+    if q:
+        like  = f"%{q}%"
+        query = query.filter(db.or_(
+            User.username.ilike(like),
+            User.email.ilike(like),
+        ))
+    users = query.order_by(User.created_at.desc()).all()
+    return jsonify([u.to_admin_dict() for u in users])
+
+
+@app.route("/api/admin/users", methods=["POST"])
+@_admin_required
+def api_admin_create_user():
+    data     = request.get_json(silent=True) or {}
+    username = (data.get("username") or "").strip()
+    password = data.get("password") or ""
+    if not username:
+        return jsonify({"error": "Username is required."}), 400
+    if len(password) < 6:
+        return jsonify({"error": "Password must be at least 6 characters."}), 400
+    # Use username as both username and a synthetic email
+    fake_email = f"{username}@admin.local"
+    if User.query.filter(db.or_(
+            User.username == username,
+            User.email == fake_email)).first():
+        return jsonify({"error": f'Username "{username}" is already taken.'}), 409
+    user = User(username=username, email=fake_email, is_enabled=True)
+    user.set_password(password)
+    db.session.add(user)
+    db.session.commit()
+    _get_default_folder(user.id)
+    return jsonify(user.to_admin_dict()), 201
+
+
+@app.route("/api/admin/users/<int:user_id>", methods=["PATCH"])
+@_admin_required
+def api_admin_update_user(user_id):
+    user = db.session.get(User, user_id)
+    if not user:
+        return jsonify({"error": "User not found."}), 404
+    data = request.get_json(silent=True) or {}
+
+    if "username" in data:
+        new_name = (data["username"] or "").strip()
+        if not new_name:
+            return jsonify({"error": "Username cannot be empty."}), 400
+        clash = User.query.filter(User.username == new_name, User.id != user_id).first()
+        if clash:
+            return jsonify({"error": f'Username "{new_name}" is already taken.'}), 409
+        user.username = new_name
+
+    if "password" in data:
+        new_pwd = data["password"] or ""
+        if len(new_pwd) < 6:
+            return jsonify({"error": "Password must be at least 6 characters."}), 400
+        user.set_password(new_pwd)
+
+    if "is_enabled" in data:
+        user.is_enabled = bool(data["is_enabled"])
+
+    db.session.commit()
+    return jsonify(user.to_admin_dict())
+
+
+@app.route("/api/admin/users/<int:user_id>", methods=["DELETE"])
+@_admin_required
+def api_admin_delete_user(user_id):
+    user = db.session.get(User, user_id)
+    if not user:
+        return jsonify({"error": "User not found."}), 404
+    # Delete all notes and folders owned by user first
+    Note.query.filter_by(user_id=user.id).delete()
+    Folder.query.filter_by(user_id=user.id).delete()
+    db.session.delete(user)
+    db.session.commit()
+    return jsonify({"ok": True})
+
+
 # ── Pages ──────────────────────────────────────────────────────────────────
 @app.route("/favicon.ico")
 def favicon():
-    # No favicon shipped; respond with empty 204 so browsers stop retrying
-    # and this doesn't fall through to the authenticated app routes.
     return ("", 204)
 
 
@@ -377,6 +474,11 @@ def notes_page():
     return render_template("index.html")
 
 
+@app.route("/Admin")
+def admin_page():
+    return render_template("admin.html")
+
+
 # ── Sidebar ────────────────────────────────────────────────────────────────
 @app.route("/api/sidebar")
 @_api_login_required
@@ -385,7 +487,7 @@ def api_sidebar():
     folders = Folder.query.filter_by(user_id=current_user.id).order_by(
         Folder.is_default.desc(), Folder.name.asc()).all()
     return jsonify({
-        "folders":        [f.to_dict() for f in folders],
+        "folders":         [f.to_dict() for f in folders],
         "all_notes_count": Note.query.filter_by(user_id=current_user.id, is_deleted=False).count(),
         "trash_count":     Note.query.filter_by(user_id=current_user.id, is_deleted=True).count(),
     })
@@ -484,13 +586,13 @@ def api_update_note(note_id):
         return jsonify({"error": "Recover this note before editing it."}), 400
     data = request.get_json(silent=True) or {}
     if "content" in data:
-        content            = data.get("content") or ""
+        content               = data.get("content") or ""
         title, snippet, plain = _derive_title_snippet(content)
-        note.content       = content
-        note.snippet       = snippet
-        note.plain_text    = plain
-        title_override     = (data.get("_title_override") or "").strip()
-        note.title         = (title_override[:255] if title_override else title) or "New Note"
+        note.content          = content
+        note.snippet          = snippet
+        note.plain_text       = plain
+        title_override        = (data.get("_title_override") or "").strip()
+        note.title            = (title_override[:255] if title_override else title) or "New Note"
     if data.get("folder_id"):
         _own_folder(data["folder_id"])
         note.folder_id = data["folder_id"]
@@ -593,7 +695,7 @@ def api_export_csv():
                     headers={"Content-Disposition": "attachment; filename=notes_export.csv"})
 
 
-# ── Local dev entry point ──────────────────────────────────────────────────
+# ── Local dev ──────────────────────────────────────────────────────────────
 if __name__ == "__main__":
     with app.app_context():
         db.create_all()
