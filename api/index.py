@@ -197,10 +197,57 @@ class Note(db.Model):
 _db_initialised = False
 
 def ensure_db():
+    """
+    Create tables if they don't exist, then run safe ALTER TABLE migrations
+    to add any columns that were introduced after the initial deployment.
+    Using 'IF NOT EXISTS' / exception-swallowing makes every migration
+    idempotent — safe to run on every cold start.
+    """
     global _db_initialised
-    if not _db_initialised:
-        db.create_all()
-        _db_initialised = True
+    if _db_initialised:
+        return
+
+    db.create_all()
+
+    # --- migrations: add new columns to existing tables ---
+    # Each block is wrapped individually so one failure doesn't block others.
+    _run_migration(
+        'ALTER TABLE "user" ADD COLUMN username VARCHAR(80)',
+        'username column'
+    )
+    _run_migration(
+        'ALTER TABLE "user" ADD COLUMN is_enabled BOOLEAN NOT NULL DEFAULT TRUE',
+        'is_enabled column'
+    )
+    _run_migration(
+        'ALTER TABLE note ADD COLUMN sort_order INTEGER NOT NULL DEFAULT 0',
+        'sort_order column'
+    )
+    _run_migration(
+        'ALTER TABLE note ADD COLUMN plain_text TEXT DEFAULT \'\'',
+        'plain_text column'
+    )
+
+    _db_initialised = True
+
+
+def _run_migration(sql, label):
+    """Execute a single DDL statement, silently ignoring 'already exists' errors."""
+    try:
+        with db.engine.connect() as conn:
+            conn.execute(db.text(sql))
+            conn.commit()
+    except Exception as e:
+        err = str(e).lower()
+        # "already exists" / "duplicate column" are expected on re-runs — skip silently.
+        # Any other error is a real problem — re-raise so it surfaces in logs.
+        if any(phrase in err for phrase in (
+            "already exists", "duplicate column", "duplicate object",
+            "column", "42701",   # PostgreSQL duplicate_column SQLSTATE
+        )):
+            pass   # column was already there from a previous run — fine
+        else:
+            raise
 
 
 @app.before_request
