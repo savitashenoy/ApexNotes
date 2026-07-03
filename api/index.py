@@ -56,13 +56,30 @@ if not _db_url:
         )
     _db_url = "sqlite:///" + os.path.join(ROOT, "notes.db")
 
+_is_postgres = "postgresql" in _db_url or "postgres" in _db_url
+
+# For serverless (Vercel), we must NOT use a connection pool — each function
+# invocation is stateless and pooled connections go stale immediately.
+# NullPool creates a fresh connection per request and closes it after.
+# For SQLite (local dev), the default StaticPool is fine.
+if _is_postgres:
+    from sqlalchemy.pool import NullPool
+    _engine_opts = {
+        "poolclass":    NullPool,
+        "pool_pre_ping": False,   # irrelevant with NullPool, avoids extra query
+        "connect_args": {
+            # Only pass sslmode if it's NOT already in the URL string.
+            # Neon/Supabase/Vercel Postgres embed ?sslmode=require in the URL;
+            # passing it twice via connect_args causes psycopg2 conflicts.
+            **({} if "sslmode" in _db_url else {"sslmode": "require"}),
+        },
+    }
+else:
+    _engine_opts = {}  # SQLite — use defaults
+
 app.config["SQLALCHEMY_DATABASE_URI"]        = _db_url
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
-app.config["SQLALCHEMY_ENGINE_OPTIONS"]      = {
-    "pool_pre_ping": True,
-    "pool_recycle":  300,
-    "connect_args":  {} if "sqlite" in _db_url else {"sslmode": "require"},
-}
+app.config["SQLALCHEMY_ENGINE_OPTIONS"]      = _engine_opts
 
 _secret_key = os.environ.get("SECRET_KEY")
 if not _secret_key:
@@ -201,7 +218,12 @@ from sqlalchemy.exc import OperationalError, DatabaseError
 @app.errorhandler(DatabaseError)
 def _handle_db_error(e):
     db.session.rollback()
-    return jsonify({"error": "Could not connect to the database. Check DATABASE_URL."}), 503
+    detail = str(e.orig) if hasattr(e, "orig") else str(e)
+    return jsonify({
+        "error": "Database connection failed.",
+        "detail": detail,
+        "hint": "Check that DATABASE_URL is correct and the database is reachable."
+    }), 503
 
 
 # ── Helpers ────────────────────────────────────────────────────────────────
