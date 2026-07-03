@@ -127,9 +127,14 @@ class User(UserMixin, db.Model):
         return {"id": self.id, "email": self.email, "username": self.username}
 
     def to_admin_dict(self):
+        # For admin-created users: show the username they were given.
+        # For self-signup users: show their full email address (username was
+        # set to email.split("@")[0] which loses the domain — show email instead).
+        is_admin_created = self.email.endswith("@admin.local")
+        display_name = self.username if is_admin_created else self.email
         return {
             "id":         self.id,
-            "username":   self.username or self.email,
+            "username":   display_name,
             "email":      self.email,
             "is_enabled": self.is_enabled,
             "created_at": self.created_at.strftime("%Y-%m-%d"),
@@ -371,14 +376,28 @@ def api_signup():
 
 @app.route("/api/auth/login", methods=["POST"])
 def api_login():
-    data     = request.get_json(silent=True) or {}
-    email    = (data.get("email") or "").strip().lower()
-    password = data.get("password") or ""
-    if not _EMAIL_RE.match(email):
-        return jsonify({"error": "Please enter a valid email address."}), 400
+    data       = request.get_json(silent=True) or {}
+    identifier = (data.get("email") or "").strip().lower()
+    password   = data.get("password") or ""
+
+    if not identifier:
+        return jsonify({"error": "Email or username is required."}), 400
     if not password:
         return jsonify({"error": "Password is required."}), 400
-    user = User.query.filter_by(email=email).first()
+
+    # Try email first; if not found try username (for admin-created users)
+    user = User.query.filter_by(email=identifier).first()
+    if not user:
+        user = User.query.filter(
+            db.func.lower(User.username) == identifier
+        ).first()
+    # Admin-created users have a synthetic email (username@admin.local).
+    # Also try resolving "alice" -> "alice@admin.local" directly.
+    if not user and not identifier.endswith("@admin.local"):
+        user = User.query.filter_by(
+            email=identifier + "@admin.local"
+        ).first()
+
     if not user or not user.check_password(password):
         return jsonify({"error": "Incorrect email or password."}), 401
     if not user.is_enabled:

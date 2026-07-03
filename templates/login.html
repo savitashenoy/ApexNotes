@@ -238,7 +238,7 @@
     <div class="panel active" id="panel-login">
       <div class="input-group">
         <span class="icon"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg></span>
-        <input type="email" id="login-email" placeholder="Email address" autocomplete="email">
+        <input type="text" id="login-email" placeholder="Email or username" autocomplete="username">
       </div>
       <div class="input-group">
         <span class="icon"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg></span>
@@ -385,7 +385,7 @@
     clearMessages();
     const email = document.getElementById("login-email").value.trim();
     const pwd   = document.getElementById("login-password").value;
-    if (!validateEmail(email, "login-email", "login-msg")) return;
+    if (!email) { setMsg("login-msg", "Please enter your email or username.", "error"); document.getElementById("login-email").classList.add("error-field"); return; }
     if (!pwd) { setMsg("login-msg", "Password is required.", "error"); document.getElementById("login-password").classList.add("error-field"); return; }
     setLoading("loginBtn", true);
     try {
