@@ -1,139 +1,172 @@
 # Notes — Vercel Deployment
 
 A Flask + SQLAlchemy notes app (Apple Notes–style) with email/password auth,
-folders, pinning, drag-and-drop reordering, sticky-notes view, and CSV export
-— packaged to deploy on **Vercel** as a Python serverless function.
+folders, pinning, drag-and-drop reordering, sticky-notes view, CSV export,
+and an admin panel — packaged to deploy on **Vercel** as a Python serverless
+function.
 
-## What changed for Vercel
+---
 
-- The Flask app now lives at **`api/index.py`** (Vercel's convention for a
-  Python serverless function).
-- The database is **PostgreSQL** instead of SQLite — Vercel's filesystem is
-  read-only/ephemeral at runtime, so SQLite can't persist data between
-  requests. Any Postgres provider works (Vercel Postgres, Neon, Supabase,
-  Railway, etc.).
-- `vercel.json` routes all non-static requests to the Python function and
-  serves `/static/*` directly.
-- `SECRET_KEY` and `DATABASE_URL` are read from environment variables instead
-  of being hardcoded.
+## Features
 
-## Deploy steps
+### Core notes
+- Rich-text editor (Quill.js) with Heading / Subheading / Body styles,
+  bold, italic, underline, strikethrough, bullet/numbered/checklist lists,
+  indent, alignment, blockquote, code block, text & highlight colour, links,
+  inline images
+- Separate title input that autosaves independently from the body
+- Autosave with 1.5 s debounce; flushes on tab close
+- Live word count and Saved / Editing… status in the taskbar
+- Pin notes, soft-delete with 30-day "Recently Deleted" retention
 
-### 1. Push this folder to a GitHub repo
+### Full-text search with filters
+- Live search bar filters notes by title and body text as you type
+- **Filter chips** narrow results further: All · Pinned · Today · This Week
+- Search highlights matched text in both list and sticky views
+- Combine search with any filter chip for compound queries
+  (e.g. "search for 'meeting' within Pinned notes")
+
+### Tags / labels  *(roadmap)*
+- Inline `#tag` syntax in note body is parsed and indexed
+- Tag chip filters will appear in the filter row alongside date filters
+- Clicking a tag anywhere navigates to all notes with that tag
+- Tags are stored as a normalised join table for fast lookup
+
+### Nested subfolders  *(roadmap)*
+- Folders will support a `parent_id` foreign key (self-referential)
+- The sidebar tree will render collapsible indent levels
+- Moving a parent folder moves all children with it
+- Breadcrumb trail shown above the note list header
+
+### Favorites / bookmarks  *(roadmap)*
+- A star icon on each note row and sticky card
+- A "Favorites" smart folder sits below "All Notes" in the sidebar
+- Favorites persist independently of pin — a note can be both
+
+### Public share links  *(roadmap)*
+- A "Share" button in the taskbar generates a signed UUID token
+- `GET /share/<token>` renders a read-only view of the note (no login needed)
+- Token expiry is configurable (24 h / 7 d / never)
+- Revoke button deletes the token immediately
+
+### Export as PDF  *(roadmap)*
+- "Export PDF" option in the taskbar dropdown next to CSV
+- Uses WeasyPrint (server-side) or the browser's `window.print()` API
+- Preserves Instrument Serif headings and all rich-text formatting
+- Exports single note or entire folder as a multi-page PDF
+
+### Bulk CSV import / export
+- **Export (live):** Export ▾ button in the taskbar downloads all notes in
+  the current folder view as a UTF-8 BOM CSV (Excel-compatible).
+  Columns: ID · Title · Folder · Pinned · Content (plain text) · Created · Updated
+- **Bulk import** *(roadmap):* Upload a CSV with the same schema; the importer
+  maps columns, creates missing folders automatically, and skips duplicates by
+  title + created date.
+
+---
+
+## Admin panel — `/Admin`
+
+Separate superuser session (independent of Flask-Login).
+
+| Credential | Value |
+|------------|-------|
+| User ID    | `superuser` |
+| Password   | `June021999` |
+
+**Members tab**
+- Create new users (username + password; enabled by default)
+- Search users by username or email
+- Edit username or reset password via modal
+- Enable / disable toggle (disabled users get 403 on login)
+- Delete user (removes all their notes and folders)
+- Users created via sign-up show their full email in the Username column;
+  admin-created users show their username
+- Admin-created users log in with their **username** in the Email/Username
+  field on the login page
+
+---
+
+## Deploy to Vercel
+
+### 1. Push to GitHub
 ```bash
-git init
-git add .
-git commit -m "Notes app — Vercel ready"
-git remote add origin <your-repo-url>
-git push -u origin main
+git init && git add . && git commit -m "init"
+git remote add origin <your-repo-url> && git push -u origin main
 ```
 
 ### 2. Create a Postgres database
-Easiest option — inside the Vercel dashboard:
-**Storage tab → Create Database → Postgres**. Vercel automatically sets the
-`DATABASE_URL` environment variable for you when you connect it to the
-project.
+**Vercel dashboard → Storage → Create Database → Postgres.**
+Vercel injects `DATABASE_URL` automatically when you link it to the project.
+Alternatively use [Neon](https://neon.tech) or [Supabase](https://supabase.com)
+and paste the connection string manually.
 
-Alternatively use a free [Neon](https://neon.tech) or
-[Supabase](https://supabase.com) Postgres instance and copy its connection
-string manually into step 3.
+### 3. Import into Vercel
+- [vercel.com/new](https://vercel.com/new) → import the repo
+- **Settings → Environment Variables:**
+  - `DATABASE_URL` — Postgres connection string (auto-set if using Vercel Postgres)
+  - `SECRET_KEY` — any long random string:
+    `python -c "import secrets; print(secrets.token_hex(32))"`
+- Click **Deploy**
 
-### 3. Import the project into Vercel
-- Go to [vercel.com/new](https://vercel.com/new) and import the GitHub repo.
-- Vercel will detect `vercel.json` and the Python function automatically.
-- Under **Settings → Environment Variables**, add:
-  - `DATABASE_URL` — your Postgres connection string (skip if you connected
-    Vercel Postgres in step 2, it's already set)
-  - `SECRET_KEY` — any long random string, e.g. generate one with:
-    ```bash
-    python -c "import secrets; print(secrets.token_hex(32))"
-    ```
+### 4. Open
+Visit your `*.vercel.app` URL → login page. Sign up, and you're in.
+The first request auto-creates all database tables and runs any pending
+column migrations.
 
-### 4. Deploy
-Click **Deploy**. Vercel installs `requirements.txt` and builds the
-serverless function. First load will run `db.create_all()` automatically,
-creating the `user`, `folder`, and `note` tables.
-
-### 5. Open the app
-Visit your `*.vercel.app` URL — you'll land on the login page. Sign up for
-an account, and you're in.
+---
 
 ## Local development
-
 ```bash
 pip install -r requirements.txt
-cp .env.example .env     # then edit DATABASE_URL / SECRET_KEY
-python api/index.py
+cp .env.example .env   # add DATABASE_URL / SECRET_KEY
+python api/index.py    # runs on http://127.0.0.1:5000
 ```
-Without a `DATABASE_URL` set, the app falls back to a local SQLite file
-(`notes.db`) for convenience — this only works locally, not on Vercel.
+Without `DATABASE_URL`, falls back to a local `notes.db` SQLite file.
+
+---
 
 ## Project structure
-
 ```
 .
 ├── api/
 │   └── index.py          # Flask app — Vercel serverless entry point
 ├── static/
-│   ├── css/style.css
-│   └── js/app.js
+│   ├── css/style.css     # Warm cream & forest green theme
+│   └── js/app.js         # Vanilla JS front-end
 ├── templates/
 │   ├── login.html        # Sign in / sign up / change password
-│   └── index.html        # Notes app shell
-├── vercel.json            # Routing + build config
+│   ├── index.html        # Notes app shell
+│   └── admin.html        # Admin panel
+├── vercel.json
 ├── requirements.txt
 ├── .env.example
 ├── .gitignore
 └── .vercelignore
 ```
 
-## Features
-
-- Email/password authentication (signup, login, logout, change password) with
-  hashed passwords and per-user data isolation
-- Folders: create, rename, delete, drag notes between them
-- Notes: rich-text editor (Quill.js), pin, search, sort, soft-delete with a
-  30-day "Recently Deleted" retention window
-- Two views: classic list and a sticky-notes grid, both with drag-and-drop
-  reordering and drag-to-folder
-- CSV export of all notes in the current folder
-- Open Sans throughout, collapsible side panels, adjustable font size/line
-  spacing/editor width in Settings
-
-## Notes on serverless behavior
-
-- Each request may hit a different (cold or warm) serverless instance, so
-  `pool_pre_ping=True` is set on the SQLAlchemy engine to transparently
-  reconnect if a pooled connection has gone stale.
-- Session cookies (via Flask-Login) are how login state persists across
-  requests — make sure `SECRET_KEY` stays constant across deploys, or all
-  users will be logged out whenever it changes.
+---
 
 ## Troubleshooting
 
-**"Internal Server Error" / `sqlite3.OperationalError: unable to open database file`**
-This means `DATABASE_URL` is not set in your Vercel project. Vercel's
-filesystem is read-only at runtime, so the app cannot fall back to SQLite the
-way it does locally — it requires a real Postgres connection. Go to
-**Project Settings → Environment Variables**, add `DATABASE_URL` (see step 2
-above), and redeploy. With this fixed, a missing `DATABASE_URL` now fails
-immediately with a clear error message at cold start instead of crashing on
-every request.
+**`column user.username does not exist`**
+Your database predates the `username` / `is_enabled` columns. The app runs
+`ALTER TABLE` migrations automatically on first request after redeploy —
+just deploy the latest code and the schema updates itself.
 
-**"Could not connect to the database" (503 response)**
-The app started fine but couldn't reach Postgres on a specific request —
-usually a typo'd connection string, an expired/rotated database password, or
-the database being paused (common on free-tier Neon/Supabase after
-inactivity). Double-check `DATABASE_URL` and that the database is awake.
+**`{"error":"Database connection failed."}`**
+`DATABASE_URL` is set but the connection is failing. Check:
+- The URL starts with `postgresql://` (not `postgres://` — the app fixes this
+  automatically, but double-check)
+- The database is not paused (free-tier Neon/Supabase sleep after inactivity)
+- Rotate the database password and update the env var if needed
 
-**Random logouts — e.g. "I created a folder and got logged out"**
-This means `SECRET_KEY` is not set in your Vercel environment variables.
-Without it, the app falls back to generating a random key — and on Vercel,
-every "cold start" can spin up a brand-new function instance with its *own*
-random key. A session cookie signed by one instance won't verify on another,
-so any action that happens to hit a fresh instance looks like an instant
-logout. Fix: set a **fixed** `SECRET_KEY` value in
-**Project Settings → Environment Variables** (generate one with
-`python -c "import secrets; print(secrets.token_hex(32))"`), then redeploy.
-With this fixed, a missing `SECRET_KEY` now fails immediately and clearly at
-cold start instead of silently causing intermittent logouts.
+**Random logouts (e.g. after creating a folder)**
+`SECRET_KEY` is not set as a fixed env var. Each serverless cold start
+generates a new random key, invalidating other instances' cookies.
+Set a stable `SECRET_KEY` in Vercel → Project Settings → Environment
+Variables, then redeploy.
+
+**Admin-created users can't log in**
+Type the **username** (not the synthetic `@admin.local` email) in the
+Email or Username field on the login page.
