@@ -118,9 +118,9 @@ button { font-family: var(--font); cursor: pointer; }
 .sidebar.collapsed { width: 0; border-right: none; opacity: 0; pointer-events: none; }
 
 .sidebar-header {
-  height: 48px;
+  height: 56px;
   display: flex; align-items: center; justify-content: space-between;
-  padding: 2px 10px 0 14px; flex-shrink: 0;
+  padding: 10px 10px 0 14px; flex-shrink: 0;
 }
 .sidebar-title {
   font-family: var(--font-heading);
@@ -171,7 +171,7 @@ button { font-family: var(--font); cursor: pointer; }
 
 .note-list-header {
   display: flex; align-items: center; gap: 4px;
-  padding: 14px 10px 4px 14px; flex-shrink: 0;
+  padding: 22px 10px 4px 14px; flex-shrink: 0;
 }
 .note-list-header h1 {
   font-family: var(--font-heading);
@@ -346,7 +346,7 @@ button { font-family: var(--font); cursor: pointer; }
 
 /* ---- TASKBAR ---- */
 .editor-taskbar {
-  height: 44px;
+  height: 52px;
   background: var(--taskbar-bg);
   border-bottom: 1px solid var(--divider);
   display: flex; align-items: center; justify-content: space-between;
@@ -424,7 +424,7 @@ button { font-family: var(--font); cursor: pointer; }
 
 /* ---- TITLE BOX ---- */
 .note-title-box {
-  padding: 22px 36px 0; flex-shrink: 0;
+  padding: 30px 36px 0; flex-shrink: 0;
   border-bottom: 1px solid var(--divider);
   background: var(--editor-bg);
 }
@@ -494,7 +494,7 @@ button { font-family: var(--font); cursor: pointer; }
 
 /* ======================== SETTINGS PANEL ======================== */
 .settings-panel {
-  position: fixed; top: 44px; right: 0;
+  position: fixed; top: 52px; right: 0;
   width: 284px;
   background: var(--editor-bg);
   border-left: 1px solid var(--divider);
