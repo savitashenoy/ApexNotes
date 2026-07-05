@@ -783,3 +783,245 @@ button { font-family: var(--font); cursor: pointer; }
 }
 .settings-logout-btn:hover { background: rgba(192,57,43,.10); border-color: rgba(192,57,43,.5); transform: translateY(-1px); }
 .settings-logout-btn:active { transform: none; }
+
+/* ════════════════════════════════════════════════════════════════
+   NEW FEATURES — Tags, Subfolders, Favorites, Share, Export/Import,
+   Date Filter, Nested folders, Tag bar in editor
+════════════════════════════════════════════════════════════════ */
+
+/* ── Subfolder add button (shows on folder row hover) ── */
+.folder-add-sub {
+  opacity: 0;
+  width: 20px; height: 20px;
+  margin-left: auto;
+  flex-shrink: 0;
+  transition: opacity .12s;
+}
+.folder-row:hover .folder-add-sub { opacity: 1; }
+
+/* ── Favorites icon in note row ── */
+.fav-icon  { color: #e6ac00; flex-shrink: 0; }
+.sticky-star { position: absolute; top: 8px; right: 26px; color: #e6ac00; }
+
+/* ── Taskbar favorite button active state ── */
+.taskbar-btn.active-fav { color: #e6ac00 !important; }
+
+/* ── Row tag chips (list view) ── */
+.row-tags {
+  display: flex; gap: 4px; flex-wrap: wrap;
+  margin: 3px 0 2px;
+}
+.row-tag-chip {
+  border-radius: 100px;
+  padding: 2px 7px;
+  font-size: 11px; font-weight: 600;
+  white-space: nowrap;
+  letter-spacing: .01em;
+}
+
+/* ── Sticky card tag row ── */
+.sticky-tags {
+  display: flex; gap: 4px; flex-wrap: wrap;
+  margin-top: 4px;
+}
+
+/* ── Tag filter chips in filter row ── */
+.tag-filter-chip {
+  display: flex; align-items: center; gap: 4px;
+}
+.tag-dot {
+  width: 7px; height: 7px; border-radius: 50%;
+  flex-shrink: 0;
+}
+
+/* ── Date filter toggle button ── */
+.date-filter-toggle {
+  display: inline-flex; align-items: center; gap: 5px;
+  border: 1px solid var(--divider);
+  background: transparent; color: var(--text-secondary);
+  border-radius: 100px; padding: 3px 10px;
+  font-family: var(--font); font-size: 11.5px; font-weight: 600;
+  cursor: pointer; margin-top: 2px;
+  transition: all .12s;
+}
+.date-filter-toggle:hover { border-color: var(--accent); color: var(--accent); }
+
+/* ── Date filter row ── */
+.date-filter-row {
+  display: flex; align-items: center; gap: 8px;
+  padding: 6px 0 2px; flex-wrap: wrap;
+}
+.date-filter-row label {
+  font-size: 12px; color: var(--text-secondary); font-weight: 600;
+  display: flex; align-items: center; gap: 5px;
+}
+.date-filter-row input[type="date"] {
+  border: 1.5px solid var(--divider);
+  border-radius: 6px; padding: 4px 8px;
+  font-family: var(--font); font-size: 12px;
+  background: var(--editor-bg); color: var(--text-primary);
+  outline: none;
+}
+.date-filter-row input[type="date"]:focus { border-color: var(--accent); }
+
+/* ── Tag bar in editor title box ── */
+.tag-bar {
+  display: flex; align-items: center; flex-wrap: wrap;
+  gap: 5px; padding-bottom: 10px; padding-top: 6px;
+  position: relative;
+}
+.tag-chips { display: flex; flex-wrap: wrap; gap: 5px; }
+.tag-chip-editor {
+  display: inline-flex; align-items: center; gap: 4px;
+  border-radius: 100px; padding: 3px 10px;
+  font-size: 12px; font-weight: 600;
+}
+.tag-chip-remove {
+  background: none; border: none; color: inherit;
+  cursor: pointer; font-size: 14px; line-height: 1;
+  padding: 0; opacity: .6;
+  transition: opacity .12s;
+}
+.tag-chip-remove:hover { opacity: 1; }
+
+#tagInput {
+  border: none; background: transparent; outline: none;
+  font-family: var(--font); font-size: 12.5px;
+  color: var(--text-secondary); width: 120px;
+  min-width: 80px;
+}
+#tagInput::placeholder { color: var(--divider); font-style: italic; }
+
+.tag-suggestions {
+  position: absolute; top: 100%; left: 0;
+  background: var(--editor-bg);
+  border: 1px solid var(--divider); border-radius: 8px;
+  box-shadow: 0 6px 20px rgba(30,27,20,.15);
+  min-width: 160px; z-index: 40;
+  overflow: hidden;
+}
+.tag-suggestion-item {
+  padding: 7px 12px; font-size: 13px; font-weight: 600;
+  cursor: pointer; transition: background .1s;
+}
+.tag-suggestion-item:hover { background: var(--hover-bg); }
+
+/* ── Export dropdown ── */
+.export-group { position: relative; }
+.export-dropdown {
+  position: absolute; top: calc(100% + 4px); left: 0;
+  background: var(--editor-bg);
+  border: 1px solid var(--divider); border-radius: 8px;
+  box-shadow: 0 6px 22px rgba(30,27,20,.18);
+  min-width: 180px; z-index: 60; overflow: hidden;
+}
+.export-option {
+  padding: 8px 14px; font-size: 13px;
+  font-family: var(--font); cursor: pointer;
+  color: var(--text-primary); white-space: nowrap;
+  transition: background .1s;
+}
+.export-option:hover { background: var(--hover-bg); }
+.export-divider { height: 1px; background: var(--divider); margin: 3px 0; }
+
+/* ── Modal overlay (shared by share + import modals) ── */
+.modal-overlay {
+  position: fixed; inset: 0;
+  background: rgba(30,27,20,.42);
+  z-index: 200;
+  display: flex; align-items: center; justify-content: center;
+}
+.modal-overlay.hidden { display: none; }
+
+.modal-card {
+  background: var(--editor-bg);
+  border: 1px solid var(--divider); border-radius: 14px;
+  padding: 28px 28px 24px;
+  width: 100%; max-width: 400px;
+  box-shadow: 0 16px 48px rgba(30,27,20,.3);
+  animation: modalIn .18s ease;
+}
+@keyframes modalIn {
+  from { opacity: 0; transform: translateY(-10px); }
+  to   { opacity: 1; transform: none; }
+}
+
+.modal-title {
+  font-family: var(--font-heading);
+  font-size: 19px; font-style: italic; font-weight: 400;
+  color: var(--accent-strong);
+  margin-bottom: 18px; padding-bottom: 14px;
+  border-bottom: 1px solid var(--divider);
+}
+
+.modal-actions {
+  margin-top: 18px; display: flex; gap: 10px; justify-content: flex-end;
+}
+
+.btn-cancel {
+  border: 1px solid var(--divider); background: transparent;
+  color: var(--text-muted); border-radius: var(--radius);
+  padding: 8px 18px; font-family: var(--font);
+  font-size: 13px; font-weight: 600; cursor: pointer;
+  transition: all .12s;
+}
+.btn-cancel:hover { border-color: var(--text-muted); color: var(--text-primary); }
+
+.btn-save {
+  border: none; background: var(--accent); color: #fff;
+  border-radius: var(--radius); padding: 8px 20px;
+  font-family: var(--font); font-size: 13px; font-weight: 700;
+  cursor: pointer; transition: background .12s;
+}
+.btn-save:hover { background: var(--accent-strong); }
+.btn-save:disabled { opacity: .55; cursor: not-allowed; }
+
+.modal-msg {
+  font-size: 12.5px; font-weight: 600;
+  margin-top: 8px; min-height: 18px;
+}
+.modal-msg.ok  { color: var(--accent); }
+.modal-msg.err { color: var(--danger); }
+
+/* ── Share modal specific ── */
+.share-url-row {
+  display: flex; gap: 8px; margin-bottom: 12px;
+}
+.share-url-row input {
+  flex: 1; border: 1.5px solid var(--divider);
+  border-radius: var(--radius); padding: 8px 12px;
+  font-family: var(--font); font-size: 13px;
+  color: var(--text-primary); background: var(--cream, #f0ece0);
+  outline: none;
+}
+.btn-copy {
+  border: 1.5px solid var(--accent); background: transparent;
+  color: var(--accent); border-radius: var(--radius);
+  padding: 8px 14px; font-family: var(--font);
+  font-size: 13px; font-weight: 700; cursor: pointer;
+  transition: all .12s; white-space: nowrap;
+}
+.btn-copy:hover { background: var(--accent); color: #fff; }
+
+.share-options {
+  font-size: 13px; color: var(--text-secondary);
+  display: flex; align-items: center; gap: 8px;
+}
+.share-options select {
+  border: 1.5px solid var(--divider); border-radius: 6px;
+  padding: 4px 8px; font-family: var(--font); font-size: 13px;
+  color: var(--text-primary); background: var(--editor-bg);
+  outline: none; cursor: pointer;
+}
+
+/* ── CSV import modal ── */
+#importFile {
+  width: 100%; padding: 10px 0;
+  font-family: var(--font); font-size: 13px;
+  color: var(--text-primary); cursor: pointer;
+}
+
+/* ── Nested folder depth indent (handled inline by JS, but visual polish) ── */
+.folder-row[style*="padding-left"] .folder-icon {
+  opacity: .75;
+}

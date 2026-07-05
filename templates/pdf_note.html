@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>{{ note.title }}</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Work+Sans:wght@300..700&display=swap');
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Work Sans',Arial,sans-serif;font-size:11pt;color:#1e1b14;padding:48px 56px;line-height:1.6}
+h1.note-title{font-family:'Instrument Serif',Georgia,serif;font-size:26pt;font-style:italic;font-weight:400;color:#2a4e24;margin-bottom:6pt;border-bottom:1pt solid #d4ccbc;padding-bottom:8pt}
+.meta{font-size:9pt;color:#7a7260;margin-bottom:10pt}
+.tags{display:flex;gap:6pt;flex-wrap:wrap;margin-bottom:14pt}
+.tag{background:#d2e8cc;color:#2a4e24;border-radius:20pt;padding:2pt 8pt;font-size:8.5pt;font-weight:600}
+.content h2{font-family:'Instrument Serif',serif;font-size:16pt;font-weight:400;color:#2a4e24;margin:16pt 0 6pt;page-break-after:avoid}
+.content h3{font-family:'Instrument Serif',serif;font-size:13pt;font-style:italic;font-weight:400;color:#3a6b32;margin:12pt 0 4pt}
+.content p{margin-bottom:8pt}
+.content ul,.content ol{padding-left:18pt;margin-bottom:8pt}
+.content li{margin-bottom:3pt}
+.content blockquote{border-left:2pt solid #3a6b32;padding-left:10pt;margin:10pt 0;color:#7a7260;font-style:italic}
+.content pre{background:#f0ece0;border-radius:4pt;padding:8pt 12pt;font-size:9pt;white-space:pre-wrap;margin-bottom:8pt}
+.content img{max-width:100%;height:auto}
+.footer{margin-top:28pt;padding-top:8pt;border-top:1pt solid #d4ccbc;font-size:8.5pt;color:#7a7260;text-align:right}
+</style>
+</head>
+<body>
+<h1 class="note-title">{{ note.title }}</h1>
+<div class="meta">Created {{ note.created_at.strftime('%B %d, %Y') }} &nbsp;·&nbsp; Updated {{ note.updated_at.strftime('%B %d, %Y') }}</div>
+{% if note.tags %}<div class="tags">{% for t in note.tags %}<span class="tag">#{{ t.name }}</span>{% endfor %}</div>{% endif %}
+<div class="content">{{ note.content|safe }}</div>
+<div class="footer">Exported from Notes</div>
+</body>
+</html>
