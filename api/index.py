@@ -166,7 +166,7 @@ class Note(db.Model):
     created_at  = db.Column(db.DateTime, default=utcnow)
     updated_at  = db.Column(db.DateTime, default=utcnow, onupdate=utcnow)
     deleted_at  = db.Column(db.DateTime, nullable=True)
-    tags        = db.relationship("Tag", secondary=note_tags, backref="notes", lazy=True)
+    tags        = db.relationship("Tag", secondary=note_tags, lazy=True)
 
     def to_dict(self, full=False):
         d = {

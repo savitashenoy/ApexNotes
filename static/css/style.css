@@ -959,7 +959,7 @@ button { font-family: var(--font); cursor: pointer; }
 .tag-suggestion-item:hover { background: var(--hover-bg); }
 
 /* ── Export dropdown ── */
-.export-group { position: relative; }
+.export-wrap { position: relative; }
 .export-dropdown {
   position: absolute; top: calc(100% + 4px); left: 0;
   background: var(--editor-bg);
@@ -1076,4 +1076,135 @@ button { font-family: var(--font); cursor: pointer; }
 /* ── Nested folder depth indent (handled inline by JS, but visual polish) ── */
 .folder-row[style*="padding-left"] .folder-icon {
   opacity: .75;
+}
+
+/* ════════════════════════════════════════════════════════════════
+   SIDEBAR FOOTER & FOLDER SETTINGS PANEL
+════════════════════════════════════════════════════════════════ */
+
+.sidebar-footer {
+  flex-shrink: 0;
+  border-top: 1px solid var(--divider);
+  padding: 8px 10px;
+}
+
+.sidebar-settings-btn {
+  width: 100%;
+  display: flex; align-items: center; gap: 7px;
+  padding: 7px 8px;
+  border: none; background: transparent;
+  color: var(--text-secondary);
+  font-family: var(--font); font-size: 12px; font-weight: 600;
+  border-radius: 6px; cursor: pointer;
+  transition: background .12s, color .12s;
+  text-align: left;
+}
+.sidebar-settings-btn:hover {
+  background: var(--hover-bg); color: var(--accent);
+}
+.sidebar-settings-btn svg { flex-shrink: 0; }
+
+/* Folder settings panel — slides up inside the sidebar */
+.folder-settings-panel {
+  position: absolute; bottom: 0; left: 0; right: 0;
+  background: var(--sidebar-bg);
+  border-top: 1.5px solid var(--divider);
+  border-radius: 0;
+  max-height: 70%;
+  overflow-y: auto;
+  z-index: 10;
+  animation: slideUp .2s ease;
+  box-shadow: 0 -6px 24px rgba(30,27,20,.12);
+}
+/* sidebar must be position:relative for absolute child */
+.sidebar { position: relative; }
+
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.folder-settings-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 12px 14px 10px;
+  border-bottom: 1px solid var(--divider);
+  font-family: var(--font-heading); font-style: italic; font-size: 14px;
+  color: var(--text-primary); font-weight: 400;
+}
+
+.folder-settings-section {
+  padding: 12px 14px 0;
+}
+.folder-settings-section:last-child { padding-bottom: 14px; }
+
+.folder-settings-label {
+  font-size: 10.5px; font-weight: 700; letter-spacing: .07em;
+  text-transform: uppercase; color: var(--text-secondary);
+  margin-bottom: 8px;
+}
+
+/* Toggle switch */
+.fs-toggle-row {
+  display: flex; align-items: center; gap: 9px; cursor: pointer;
+}
+.fs-toggle-row input[type="checkbox"] { display: none; }
+.fs-toggle {
+  width: 34px; height: 19px; border-radius: 100px;
+  background: #ccc; position: relative; flex-shrink: 0;
+  transition: background .2s;
+}
+.fs-toggle::after {
+  content: ""; position: absolute;
+  left: 2px; top: 2px;
+  width: 15px; height: 15px; border-radius: 50%; background: #fff;
+  box-shadow: 0 1px 3px rgba(0,0,0,.2);
+  transition: left .2s;
+}
+.fs-toggle-row input:checked + .fs-toggle { background: var(--accent); }
+.fs-toggle-row input:checked + .fs-toggle::after { left: 17px; }
+.fs-toggle-text { font-size: 12.5px; color: var(--text-primary); font-weight: 500; }
+
+/* Sort select */
+.fs-select {
+  width: 100%; padding: 7px 10px;
+  border: 1.5px solid var(--divider); border-radius: 7px;
+  background: var(--editor-bg); color: var(--text-primary);
+  font-family: var(--font); font-size: 13px;
+  outline: none; cursor: pointer;
+  transition: border-color .12s;
+}
+.fs-select:focus { border-color: var(--accent); }
+
+/* Tag manager inside folder settings */
+.fs-tag-list {
+  display: flex; flex-direction: column; gap: 5px;
+  margin-bottom: 6px;
+  max-height: 150px; overflow-y: auto;
+}
+.fs-tag-row {
+  display: flex; align-items: center; gap: 8px;
+}
+.fs-tag-color {
+  width: 18px; height: 18px; border-radius: 50%;
+  border: 2px solid rgba(0,0,0,.08); cursor: pointer;
+  flex-shrink: 0; position: relative;
+  transition: transform .12s;
+}
+.fs-tag-color:hover { transform: scale(1.2); }
+/* Hidden colour input overlaid on dot */
+.fs-tag-color input[type="color"] {
+  position: absolute; inset: 0; opacity: 0;
+  width: 100%; height: 100%; cursor: pointer; border: none; padding: 0;
+}
+.fs-tag-name {
+  font-size: 12.5px; font-weight: 600; color: var(--text-primary); flex: 1;
+}
+.fs-tag-delete {
+  background: none; border: none; color: var(--text-secondary);
+  cursor: pointer; font-size: 15px; line-height: 1; padding: 0;
+  transition: color .12s;
+}
+.fs-tag-delete:hover { color: var(--danger); }
+.fs-tag-hint {
+  font-size: 11px; color: var(--text-secondary); font-style: italic;
 }

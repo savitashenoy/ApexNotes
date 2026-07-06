@@ -953,9 +953,34 @@
      BIND UI
   ════════════════════════════════════════ */
   function bindUI() {
-    el("newFolderBtn").addEventListener("click",createFolder);
-    el("collapseSidebar").addEventListener("click",()=>collapseSidebar());
-    el("sidebarTab").addEventListener("click",()=>collapseSidebar(false));
+    el("newFolderBtn").addEventListener("click", createFolder);
+    el("collapseSidebar").addEventListener("click", () => collapseSidebar());
+    el("sidebarTab").addEventListener("click", () => collapseSidebar(false));
+
+    // Folder settings panel
+    el("sidebarSettingsBtn").addEventListener("click", e => {
+      e.stopPropagation();
+      el("folderSettingsPanel").classList.toggle("hidden");
+      if (!el("folderSettingsPanel").classList.contains("hidden")) renderFolderSettingsTags();
+    });
+    el("closeFolderSettings").addEventListener("click", () => {
+      el("folderSettingsPanel").classList.add("hidden");
+    });
+
+    // Show note count toggle
+    el("fsShowCount").addEventListener("change", () => {
+      document.querySelectorAll(".folder-count").forEach(c => {
+        c.style.display = el("fsShowCount").checked ? "" : "none";
+      });
+    });
+
+    // Default sort order — apply immediately when changed
+    el("fsDefaultSort").addEventListener("change", () => {
+      const val = el("fsDefaultSort").value;
+      state.sortBy = val;
+      el("sortLabel").textContent = { updated:"Date Edited", created:"Date Created", title:"Title" }[val] || "Date Edited";
+      renderNoteList();
+    });
     el("collapseNoteList").addEventListener("click",()=>collapseNoteList());
     el("noteListTab").addEventListener("click",()=>collapseNoteList(false));
     el("backToFolders").addEventListener("click",()=>setMobileView("view-folders"));
@@ -975,17 +1000,26 @@
       confirmDialog("Delete this note? It will move to Recently Deleted.",()=>deleteNote(state.currentNoteId));
     });
 
-    // Export group
-    el("exportGroup").addEventListener("click",e=>{
+    // Export group — toggle dropdown, stopPropagation prevents immediate close
+    el("exportGroup").addEventListener("click", e => {
       e.stopPropagation();
       el("exportDropdown").classList.toggle("hidden");
     });
-    el("exportCsvBtn").addEventListener("click",()=>{ el("exportDropdown").classList.add("hidden"); exportCsv(); });
-    el("exportPdfBtn").addEventListener("click",()=>{ el("exportDropdown").classList.add("hidden"); exportPdf(); });
-    el("importCsvBtn").addEventListener("click",()=>{
+    el("exportCsvBtn").addEventListener("click", e => {
+      e.stopPropagation();
       el("exportDropdown").classList.add("hidden");
-      el("importMsg").textContent=""; el("importMsg").className="modal-msg";
-      el("importFile").value="";
+      exportCsv();
+    });
+    el("exportPdfBtn").addEventListener("click", e => {
+      e.stopPropagation();
+      el("exportDropdown").classList.add("hidden");
+      exportPdf();
+    });
+    el("importCsvBtn").addEventListener("click", e => {
+      e.stopPropagation();
+      el("exportDropdown").classList.add("hidden");
+      el("importMsg").textContent = ""; el("importMsg").className = "modal-msg";
+      el("importFile").value = "";
       el("importModal").classList.remove("hidden");
     });
     el("doImportBtn").addEventListener("click",doImport);
@@ -1084,7 +1118,7 @@
     document.addEventListener("click",e=>{
       if (!el("sortMenu").contains(e.target)&&e.target!==el("sortBtn")) el("sortMenu").classList.add("hidden");
       if (!el("settingsPanel").contains(e.target)&&e.target!==el("settingsBtn")) el("settingsPanel").classList.add("hidden");
-      if (!el("exportGroup").contains(e.target)) el("exportDropdown").classList.add("hidden");
+      if (!el("exportWrap").contains(e.target)) el("exportDropdown").classList.add("hidden");
     });
 
     window.addEventListener("keydown",e=>{
@@ -1099,7 +1133,93 @@
           new Blob([JSON.stringify({ content:state.quill.root.innerHTML })],{ type:"application/json" }));
     });
 
+    // Close folder settings panel when clicking outside it
+    document.addEventListener("click", e => {
+      const panel = el("folderSettingsPanel");
+      if (!panel || panel.classList.contains("hidden")) return;
+      if (!el("sidebar").contains(e.target)) {
+        panel.classList.add("hidden");
+      }
+    });
+
     initTagInput();
+  }
+
+  /* ────────────────────────────────────────
+     FOLDER SETTINGS — tag manager
+  ──────────────────────────────────────── */
+  function renderFolderSettingsTags() {
+    const list = el("fsTagList");
+    list.innerHTML = "";
+
+    if (!state.tags.length) {
+      list.innerHTML = '<div style="font-size:12px;color:var(--text-secondary);font-style:italic;padding:4px 0">No tags yet — type #tagname in a note</div>';
+      return;
+    }
+
+    state.tags.forEach(tag => {
+      const row = document.createElement("div");
+      row.className = "fs-tag-row";
+
+      // Colour dot with hidden colour-picker input on top
+      const dotWrap = document.createElement("div");
+      dotWrap.className = "fs-tag-color";
+      dotWrap.style.background = tag.color;
+      const colorInput = document.createElement("input");
+      colorInput.type = "color";
+      colorInput.value = tag.color;
+      colorInput.addEventListener("input", () => {
+        dotWrap.style.background = colorInput.value;
+      });
+      colorInput.addEventListener("change", async () => {
+        const updated = await api(`/api/tags/${tag.id}`, { method:"PATCH", body:JSON.stringify({ color:colorInput.value }) });
+        if (!updated) return;
+        // update local state
+        const t = state.tags.find(t => t.id === tag.id);
+        if (t) t.color = updated.color;
+        // refresh tag chips in filter row
+        renderTagFilterChips();
+        // refresh note list so tag chips update their colours
+        renderNoteList();
+      });
+      dotWrap.appendChild(colorInput);
+      row.appendChild(dotWrap);
+
+      // Tag name
+      const name = document.createElement("span");
+      name.className = "fs-tag-name";
+      name.textContent = "#" + tag.name;
+      row.appendChild(name);
+
+      // Note count badge
+      const noteCount = state.notes.filter(n => n.tags && n.tags.some(t => t.id === tag.id)).length;
+      if (noteCount > 0) {
+        const badge = document.createElement("span");
+        badge.style.cssText = "font-size:11px;color:var(--text-secondary);";
+        badge.textContent = noteCount + "n";
+        row.appendChild(badge);
+      }
+
+      // Delete button
+      const del = document.createElement("button");
+      del.className = "fs-tag-delete";
+      del.title = "Delete tag";
+      del.innerHTML = "×";
+      del.addEventListener("click", async () => {
+        if (!confirm(`Delete tag "#${tag.name}"? It will be removed from all notes.`)) return;
+        await api(`/api/tags/${tag.id}`, { method:"DELETE" });
+        state.tags = state.tags.filter(t => t.id !== tag.id);
+        // remove from all notes in state
+        state.notes.forEach(n => { if (n.tags) n.tags = n.tags.filter(t => t.id !== tag.id); });
+        renderFolderSettingsTags();
+        renderTagFilterChips();
+        renderNoteList();
+        loadSidebar();
+      });
+      row.appendChild(del);
+
+      list.appendChild(row);
+    });
   }
 
   /* ════════════════════════════════════════

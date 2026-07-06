@@ -28,6 +28,48 @@
       </div>
     </div>
     <nav class="folder-list" id="folderList"></nav>
+
+    <!-- Sidebar footer settings -->
+    <div class="sidebar-footer">
+      <button class="sidebar-settings-btn" id="sidebarSettingsBtn" title="Folder settings">
+        <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+        Folder Settings
+      </button>
+    </div>
+
+    <!-- Folder Settings panel (slides up from footer) -->
+    <div class="folder-settings-panel hidden" id="folderSettingsPanel">
+      <div class="folder-settings-header">
+        <span>Folder Settings</span>
+        <button class="icon-btn" id="closeFolderSettings">
+          <svg viewBox="0 0 24 24" width="14" height="14"><path d="M6 6l12 12M6 18L18 6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
+        </button>
+      </div>
+
+      <div class="folder-settings-section">
+        <div class="folder-settings-label">Show note count</div>
+        <label class="fs-toggle-row">
+          <input type="checkbox" id="fsShowCount" checked>
+          <span class="fs-toggle"></span>
+          <span class="fs-toggle-text">Display count badges</span>
+        </label>
+      </div>
+
+      <div class="folder-settings-section">
+        <div class="folder-settings-label">Default sort order</div>
+        <select id="fsDefaultSort" class="fs-select">
+          <option value="updated">Date Edited</option>
+          <option value="created">Date Created</option>
+          <option value="title">Title A–Z</option>
+        </select>
+      </div>
+
+      <div class="folder-settings-section">
+        <div class="folder-settings-label">Manage tags</div>
+        <div class="fs-tag-list" id="fsTagList"></div>
+        <div class="fs-tag-hint">Click a colour dot to change it</div>
+      </div>
+    </div>
   </aside>
 
   <div class="panel-tab sidebar-tab hidden" id="sidebarTab" title="Show Folders">
@@ -138,8 +180,10 @@
         <button class="taskbar-btn" id="taskbarShareBtn">
           <svg viewBox="0 0 24 24" width="14" height="14"><circle cx="18" cy="5" r="3" fill="none" stroke="currentColor" stroke-width="1.5"/><circle cx="6" cy="12" r="3" fill="none" stroke="currentColor" stroke-width="1.5"/><circle cx="18" cy="19" r="3" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M8.59 13.51l6.83 3.98M15.41 6.51l-6.82 3.98" stroke="currentColor" stroke-width="1.5"/></svg><span>Share</span>
         </button>
-        <div class="taskbar-btn export-group" id="exportGroup">
-          <svg viewBox="0 0 24 24" width="14" height="14"><path d="M12 16l-4-4h2.5V4h3v8H16l-4 4z" fill="currentColor"/><path d="M4 18h16v2H4z" fill="currentColor"/></svg><span>Export</span>
+        <div class="export-wrap" id="exportWrap">
+          <button class="taskbar-btn" id="exportGroup">
+            <svg viewBox="0 0 24 24" width="14" height="14"><path d="M12 16l-4-4h2.5V4h3v8H16l-4 4z" fill="currentColor"/><path d="M4 18h16v2H4z" fill="currentColor"/></svg><span>Export</span>
+          </button>
           <div class="export-dropdown hidden" id="exportDropdown">
             <div class="export-option" id="exportCsvBtn">CSV (all notes)</div>
             <div class="export-option" id="exportPdfBtn">PDF (this note)</div>
