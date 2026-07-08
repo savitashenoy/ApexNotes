@@ -169,6 +169,23 @@ class Note(db.Model):
     tags        = db.relationship("Tag", secondary=note_tags, lazy=True)
 
     def to_dict(self, full=False):
+        # Load tags via raw SQL — never trust the ORM lazy cache for note_tags
+        # as it can bleed across notes sharing the same session/identity map.
+        try:
+            rows = db.session.execute(
+                db.text("""
+                    SELECT t.id, t.name, t.color
+                    FROM tag t
+                    JOIN note_tags nt ON nt.tag_id = t.id
+                    WHERE nt.note_id = :nid
+                    ORDER BY t.name
+                """),
+                {"nid": self.id}
+            ).fetchall()
+            tags_list = [{"id": r[0], "name": r[1], "color": r[2]} for r in rows]
+        except Exception:
+            tags_list = []
+
         d = {
             "id":          self.id,
             "folder_id":   self.folder_id,
@@ -180,7 +197,7 @@ class Note(db.Model):
             "is_deleted":  self.is_deleted,
             "sort_order":  self.sort_order,
             "share_token": self.share_token,
-            "tags":        [t.to_dict() for t in self.tags],
+            "tags":        tags_list,
             "created_at":  self.created_at.isoformat() + "Z",
             "updated_at":  self.updated_at.isoformat() + "Z",
         }
@@ -208,6 +225,20 @@ def ensure_db():
         ('ALTER TABLE note ADD COLUMN share_expires TIMESTAMP',),
         ('ALTER TABLE folder ADD COLUMN parent_id INTEGER REFERENCES folder(id)',),
         ('ALTER TABLE folder ADD COLUMN sort_order INTEGER NOT NULL DEFAULT 0',),
+        # tag and note_tags tables — created by db.create_all() on fresh DBs,
+        # but existing Vercel deployments need explicit CREATE TABLE IF NOT EXISTS
+        ("""CREATE TABLE IF NOT EXISTS tag (
+            id SERIAL PRIMARY KEY,
+            user_id INTEGER NOT NULL REFERENCES "user"(id) ON DELETE CASCADE,
+            name VARCHAR(60) NOT NULL,
+            color VARCHAR(7) NOT NULL DEFAULT '#5a7c50',
+            UNIQUE(user_id, name)
+        )""",),
+        ("""CREATE TABLE IF NOT EXISTS note_tags (
+            note_id INTEGER NOT NULL REFERENCES note(id) ON DELETE CASCADE,
+            tag_id  INTEGER NOT NULL REFERENCES tag(id)  ON DELETE CASCADE,
+            PRIMARY KEY (note_id, tag_id)
+        )""",),
     ]
     for (sql,) in migrations:
         _run_migration(sql)
@@ -220,7 +251,13 @@ def _run_migration(sql):
             conn.commit()
     except Exception as e:
         err = str(e).lower()
-        if any(p in err for p in ("already exists","duplicate column","duplicate object","42701","column")):
+        # Ignore "already exists" errors — idempotent migrations
+        if any(p in err for p in (
+            "already exists", "duplicate column", "duplicate object",
+            "42701",   # PostgreSQL duplicate_column
+            "42p07",   # PostgreSQL duplicate_table
+            "column",
+        )):
             pass
         else:
             raise
@@ -276,22 +313,81 @@ def _extract_hashtags(plain_text):
 
 
 def _sync_note_tags(note, tag_names):
-    """Ensure the note's tag relationships match tag_names (creates tags as needed)."""
-    current = {t.name: t for t in note.tags}
-    desired = set(tag_names)
-    # remove no-longer-present
-    for name, tag in list(current.items()):
-        if name not in desired:
-            note.tags.remove(tag)
-    # add new
+    """
+    Sync note's tags using raw SQL on note_tags.
+    Never uses ORM relationship append/remove so SQLAlchemy's identity map
+    cannot bleed tags across notes sharing the same session.
+    """
+    if not tag_names:
+        # Remove all tags from this note
+        db.session.execute(
+            db.text("DELETE FROM note_tags WHERE note_id = :nid"),
+            {"nid": note.id}
+        )
+        return
+
+    desired = set(t.lower().strip() for t in tag_names if t.strip())
+
+    # Ensure each desired tag exists for this user
+    tag_ids = []
     for name in desired:
-        if name not in current:
-            tag = Tag.query.filter_by(user_id=note.user_id, name=name).first()
-            if not tag:
-                tag = Tag(user_id=note.user_id, name=name)
-                db.session.add(tag)
-                db.session.flush()
-            note.tags.append(tag)
+        tag = Tag.query.filter_by(user_id=note.user_id, name=name).first()
+        if not tag:
+            tag = Tag(user_id=note.user_id, name=name)
+            db.session.add(tag)
+            db.session.flush()
+        tag_ids.append(tag.id)
+
+    # Get current tag_ids for this note via raw SQL
+    rows = db.session.execute(
+        db.text("SELECT tag_id FROM note_tags WHERE note_id = :nid"),
+        {"nid": note.id}
+    ).fetchall()
+    current_ids = {r[0] for r in rows}
+
+    # Remove tags no longer desired
+    to_remove = current_ids - set(tag_ids)
+    for tid in to_remove:
+        db.session.execute(
+            db.text("DELETE FROM note_tags WHERE note_id = :nid AND tag_id = :tid"),
+            {"nid": note.id, "tid": tid}
+        )
+
+    # Add new tags not yet linked
+    to_add = set(tag_ids) - current_ids
+    for tid in to_add:
+        try:
+            db.session.execute(
+                db.text("INSERT INTO note_tags (note_id, tag_id) VALUES (:nid, :tid)"),
+                {"nid": note.id, "tid": tid}
+            )
+        except Exception:
+            db.session.rollback()
+
+
+def _set_note_tags_by_ids(note_id, tag_ids, user_id):
+    """
+    Explicitly set a note's tags to exactly the given tag_id list.
+    Uses raw SQL only — zero ORM relationship writes.
+    """
+    # Verify all tag_ids belong to this user
+    valid = {t.id for t in Tag.query.filter(
+        Tag.id.in_(tag_ids), Tag.user_id == user_id).all()} if tag_ids else set()
+
+    # Delete all current associations for this note
+    db.session.execute(
+        db.text("DELETE FROM note_tags WHERE note_id = :nid"),
+        {"nid": note_id}
+    )
+    # Insert the desired ones
+    for tid in valid:
+        try:
+            db.session.execute(
+                db.text("INSERT INTO note_tags (note_id, tag_id) VALUES (:nid, :tid)"),
+                {"nid": note_id, "tid": tid}
+            )
+        except Exception:
+            db.session.rollback()
 
 
 def _get_default_folder(user_id):
@@ -691,8 +787,15 @@ def api_list_notes():
         query = query.filter(db.or_(Note.title.ilike(like), Note.plain_text.ilike(like)))
 
     if tag_filter:
-        query = query.join(note_tags).join(Tag).filter(
-            Tag.user_id == current_user.id, Tag.name == tag_filter)
+        query = query.filter(
+            db.text("""EXISTS (
+                SELECT 1 FROM note_tags nt
+                JOIN tag t ON t.id = nt.tag_id
+                WHERE nt.note_id = note.id
+                  AND t.name = :tag_name
+                  AND t.user_id = :uid
+            )""").bindparams(tag_name=tag_filter, uid=current_user.id)
+        )
 
     if date_from_str:
         try:
@@ -757,11 +860,9 @@ def api_update_note(note_id):
     if data.get("folder_id"):
         _own_folder(data["folder_id"])
         note.folder_id = data["folder_id"]
-    # Explicit tag list override
+    # Explicit tag list override — use raw SQL, never ORM assignment
     if "tag_ids" in data:
-        tag_ids = data["tag_ids"] or []
-        note.tags = Tag.query.filter(Tag.id.in_(tag_ids),
-                                     Tag.user_id == current_user.id).all()
+        _set_note_tags_by_ids(note.id, data.get("tag_ids") or [], current_user.id)
     db.session.commit()
     return jsonify(note.to_dict(full=True))
 
