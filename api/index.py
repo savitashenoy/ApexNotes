@@ -324,6 +324,7 @@ def _sync_note_tags(note, tag_names):
             db.text("DELETE FROM note_tags WHERE note_id = :nid"),
             {"nid": note.id}
         )
+        _expire_note_tag_relationships()
         return
 
     desired = set(t.lower().strip() for t in tag_names if t.strip())
@@ -364,6 +365,8 @@ def _sync_note_tags(note, tag_names):
         except Exception:
             db.session.rollback()
 
+    _expire_note_tag_relationships()
+
 
 def _set_note_tags_by_ids(note_id, tag_ids, user_id):
     """
@@ -388,6 +391,18 @@ def _set_note_tags_by_ids(note_id, tag_ids, user_id):
             )
         except Exception:
             db.session.rollback()
+
+    _expire_note_tag_relationships()
+
+
+def _expire_note_tag_relationships():
+    """Expire cached tag relationship data on any loaded Note instances."""
+    for obj in list(db.session.identity_map.values()):
+        if isinstance(obj, Note):
+            try:
+                db.session.expire(obj, ["tags"])
+            except Exception:
+                pass
 
 
 def _get_default_folder(user_id):
@@ -970,22 +985,41 @@ def api_revoke_share(note_id):
 @_api_login_required
 def api_export_csv():
     folder_param = request.args.get("folder", "all")
-    query = Note.query.filter_by(user_id=current_user.id, is_deleted=False)
-    if folder_param not in ("all", "trash"):
-        try:
-            query = query.filter_by(folder_id=int(folder_param))
-        except ValueError:
-            pass
+    query = Note.query.filter_by(user_id=current_user.id)
+    if folder_param == "trash":
+        query = query.filter_by(is_deleted=True)
+    else:
+        query = query.filter_by(is_deleted=False)
+        if folder_param == "favorites":
+            query = query.filter_by(is_favorite=True)
+        elif folder_param not in ("all", None, ""):
+            try:
+                fid = int(folder_param)
+                def all_subfolder_ids(pid):
+                    ids = [pid]
+                    for c in Folder.query.filter_by(user_id=current_user.id, parent_id=pid).all():
+                        ids += all_subfolder_ids(c.id)
+                    return ids
+                query = query.filter(Note.folder_id.in_(all_subfolder_ids(fid)))
+            except (ValueError, TypeError):
+                pass
+
     notes = query.order_by(Note.pinned.desc(), Note.sort_order.asc(), Note.updated_at.desc()).all()
     output = io.StringIO()
     writer = csv.writer(output, quoting=csv.QUOTE_ALL)
     writer.writerow(["ID", "Title", "Folder", "Tags", "Pinned", "Favorite",
                      "Content (plain text)", "Created", "Updated"])
     for n in notes:
+        folder = Folder.query.filter_by(id=n.folder_id).first()
+        rows = db.session.execute(
+            db.text("SELECT t.name FROM tag t JOIN note_tags nt ON nt.tag_id = t.id WHERE nt.note_id = :nid ORDER BY t.name"),
+            {"nid": n.id}
+        ).fetchall()
+        tags = [r[0] for r in rows]
         writer.writerow([
             n.id, n.title or "",
-            n.folder.name if n.folder else "",
-            "|".join(t.name for t in n.tags),
+            folder.name if folder else "",
+            "|".join(tags),
             "Yes" if n.pinned else "No",
             "Yes" if n.is_favorite else "No",
             n.plain_text or "",
