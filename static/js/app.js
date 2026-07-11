@@ -1000,30 +1000,6 @@
       confirmDialog("Delete this note? It will move to Recently Deleted.",()=>deleteNote(state.currentNoteId));
     });
 
-    // Export group — toggle dropdown, stopPropagation prevents immediate close
-    el("exportGroup").addEventListener("click", e => {
-      e.stopPropagation();
-      el("exportDropdown").classList.toggle("hidden");
-    });
-    el("exportCsvBtn").addEventListener("click", e => {
-      e.stopPropagation();
-      el("exportDropdown").classList.add("hidden");
-      exportCsv();
-    });
-    el("exportPdfBtn").addEventListener("click", e => {
-      e.stopPropagation();
-      el("exportDropdown").classList.add("hidden");
-      exportPdf();
-    });
-    el("importCsvBtn").addEventListener("click", e => {
-      e.stopPropagation();
-      el("exportDropdown").classList.add("hidden");
-      el("importMsg").textContent = ""; el("importMsg").className = "modal-msg";
-      el("importFile").value = "";
-      el("importModal").classList.remove("hidden");
-    });
-    el("doImportBtn").addEventListener("click",doImport);
-
     // Share modal
     el("generateShareBtn").addEventListener("click",generateShareLink);
     el("revokeShareBtn").addEventListener("click",revokeShareLink);
@@ -1115,10 +1091,48 @@
     });
 
     el("overlay").addEventListener("click",closeContextMenu);
-    document.addEventListener("click",e=>{
-      if (!el("sortMenu").contains(e.target)&&e.target!==el("sortBtn")) el("sortMenu").classList.add("hidden");
-      if (!el("settingsPanel").contains(e.target)&&e.target!==el("settingsBtn")) el("settingsPanel").classList.add("hidden");
-      if (!el("exportWrap").contains(e.target)) el("exportDropdown").classList.add("hidden");
+
+    // Export dropdown — use mousedown so the toggle fires BEFORE the
+    // document 'click' listener, preventing the same click from both
+    // opening and immediately closing the dropdown.
+    let _exportJustOpened = false;
+    el("exportGroup").addEventListener("mousedown", e => {
+      e.preventDefault(); // prevent focus shift
+      const isHidden = el("exportDropdown").classList.contains("hidden");
+      el("exportDropdown").classList.toggle("hidden");
+      if (isHidden) _exportJustOpened = true;
+    });
+    el("exportCsvBtn").addEventListener("click", e => {
+      e.stopPropagation();
+      el("exportDropdown").classList.add("hidden");
+      exportCsv();
+    });
+    el("exportPdfBtn").addEventListener("click", e => {
+      e.stopPropagation();
+      el("exportDropdown").classList.add("hidden");
+      exportPdf();
+    });
+    el("importCsvBtn").addEventListener("click", e => {
+      e.stopPropagation();
+      el("exportDropdown").classList.add("hidden");
+      el("importMsg").textContent = ""; el("importMsg").className = "modal-msg";
+      el("importFile").value = "";
+      el("importModal").classList.remove("hidden");
+    });
+    el("doImportBtn").addEventListener("click", doImport);
+
+    document.addEventListener("click", e => {
+      if (!el("sortMenu").contains(e.target) && e.target !== el("sortBtn"))
+        el("sortMenu").classList.add("hidden");
+      if (!el("settingsPanel").contains(e.target) && e.target !== el("settingsBtn"))
+        el("settingsPanel").classList.add("hidden");
+      // Close export dropdown unless it was just opened by mousedown this tick
+      if (_exportJustOpened) {
+        _exportJustOpened = false;
+      } else if (!el("exportDropdown").classList.contains("hidden") &&
+                 !el("exportWrap").contains(e.target)) {
+        el("exportDropdown").classList.add("hidden");
+      }
     });
 
     window.addEventListener("keydown",e=>{
